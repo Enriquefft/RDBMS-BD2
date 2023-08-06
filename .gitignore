@@ -1,3 +1,7 @@
+/build
+/docs
+/.cache
+
 # Prerequisites
 *.d
 

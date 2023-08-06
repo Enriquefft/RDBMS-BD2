@@ -1,0 +1,54 @@
+---
+If:
+    PathExclude: [.*\.c, .*\.h]
+CompileFlags:
+  # Treat code as C++, use C++20 standard, enable all warnings.
+  Add:
+      - "-Weverything"
+      - "-xc++"
+      - "-std=c++20"
+      - "-fsanitize=address"
+      - "-fsanitize=undefined"
+      - "-fdiagnostics-show-option"
+      # - "-fsanitize=thread" # Not allowed with fsanitize=address
+      - "--analyze"
+      # Disable unwanted warnings.
+      - "-Wno-c++98-compat"
+      - "-Wno-c++98-compat-pedantic"
+      - "-Wno-c++98-compat-pedantic"
+      - "-Wno-zero-as-null-pointer-constant"
+      - "-Wno-c++20-compat"
+
+Diagnostics:
+
+  # Tweak Clang-Tidy checks.
+  ClangTidy:
+    Add: 
+      [
+      bugprone*
+      cert*
+      clang-analyzer*
+      concurrency*
+      cppcoreguidelines*
+      google*
+      hicpp*
+      misc*
+      modernize*
+      performance* 
+      readability*
+      -google-objc*
+      ]
+    # Remove: [modernize-use-trailing-return-type]
+    CheckOptions:
+      misc-non-private-member-variables-in-classes.IgnorePublicMemberVariables: 1
+      readability-identifier-naming.ParameterIgnoredRegexp: ^_.*$
+      readability-identifier-naming.PrivateMemberIgnoredRegexp: ^C_.*$
+      readability-identifier-naming.VariableCase: lower_case
+      readability-identifier-naming.ClassCase: CamelCase
+      readability-identifier-naming.ConstantCase: UPPER_CASE
+      readability-identifier-naming.FunctionCase: lower_case
+      readability-identifier-naming.MethodCase: lower_case
+      readability-identifier-naming.ParameterCase: lower_case
+      readability-identifier-naming.PrivateMemberPrefix: m_
+
+  UnusedIncludes: Strict
