@@ -10,10 +10,12 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 add_executable(RDBMS src/main.cpp)
 
+target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
 target_compile_features(RDBMS PRIVATE cxx_std_20)
 
 target_compile_options(
-  RDMS
+  RDBMS
   PRIVATE # Prefered warnings
           $<$<CXX_COMPILER_ID:MSVC>:/W4
           /WX>
