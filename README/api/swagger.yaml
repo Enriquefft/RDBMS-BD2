@@ -1,0 +1,61 @@
+openapi: 3.0.0
+servers:
+  # Added by API Auto Mocking Plugin
+  - description: SwaggerHub API Auto Mocking
+    url: https://virtserver.swaggerhub.com/ENRIQUEFFT04/RDBMS/1.0.0
+info:
+  version: "1.0.0"
+  title: RDBMS API
+  contact:
+    email: enrique.flores@utec.edu.pe
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+  description: API for a Relational Database Management System made for the DB-2 course.
+paths:
+  /query:
+    post:
+      summary: Send an SQL Query
+      operationId: sendQuery
+      description: Sends a query in SQL to be executed by the db as a sing
+      responses: 
+        '200':
+          description: Query parsed correctly
+          content: 
+            application/json:
+              schema:
+                type: object
+                properties:
+                  existingTables:
+                    $ref: '#/components/schemas/TableList'
+                  queryData:
+                    $ref: '#/components/schemas/QueryData'
+        '400':
+          description: 'invalid query'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Query'
+        description: Inventory item to add
+components:
+  schemas:
+    Query:
+      type: string
+      description: SQL query to the RDBMS passed as a string
+    TableList:
+      type: array
+      items:
+        type: string
+      description: List of the tables present in the the DB
+    QueryData:
+      type: array
+      items:
+        type: object
+        required:
+          - key
+        properties:
+          key:
+            type: string
+        additionalProperties: true
+      description: Output of the executed query
