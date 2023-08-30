@@ -1,3 +1,6 @@
 [submodule "RDBMS-Frontend"]
 	path = RDBMS-Frontend
 	url = https://github.com/Enriquefft/RDBMS-Frontend
+[submodule "libs/sql-parser"]
+	path = libs/sql-parser
+	url = https://github.com/juaquin456/parser-dbms-bd2
