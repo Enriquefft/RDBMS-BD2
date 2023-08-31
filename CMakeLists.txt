@@ -12,6 +12,8 @@ add_executable(RDBMS src/main.cpp)
 
 target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
+add_subdirectory(src/DBEngine)
+
 target_compile_features(RDBMS PRIVATE cxx_std_20)
 
 target_compile_options(
@@ -39,6 +41,10 @@ target_compile_options(
 
 target_link_options(
   RDBMS PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
+
+# API library
+find_package(Crow)
+target_link_libraries(RDBMS PUBLIC Crow::Crow)
 
 include(FetchContent)
 FetchContent_Declare(
