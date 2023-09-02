@@ -2,12 +2,12 @@
 #include "DBEngine/DBEngine.hpp"
 #include "SqlParser.hpp"
 
-int main(int argc, char *argv[]) {
+int main() {
 
   SqlParser parser;
   DBEngine engine;
 
-  Api api(parser, engine);
+  Api api(engine, parser);
   api.run();
 
   return 0;

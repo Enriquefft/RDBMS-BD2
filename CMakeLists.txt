@@ -8,45 +8,56 @@ project(
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
-add_executable(RDBMS src/main.cpp)
+add_executable(RDBMS src/main.cpp src/Api/Api.cpp)
 
 target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include/Api)
 
 add_subdirectory(src/DBEngine)
+add_subdirectory(libs/SqlParser)
 
 target_compile_features(RDBMS PRIVATE cxx_std_20)
 
 target_compile_options(
   RDBMS
-  PRIVATE # Prefered warnings
-          $<$<CXX_COMPILER_ID:MSVC>:/W4
-          /WX>
-          $<$<CXX_COMPILER_ID:Clang>:-Weverything>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall
-          -Wextra
-          -Wpedantic
-          -Werror>
-          # Disable some warnings
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-c++98-compat>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-c++98-compat-pedantic>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-c++20-compat>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-zero-as-null-pointer-constant>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wno-error=padded>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize-address-use-after-scope>
-          $<$<CONFIG:RELEASE>:-Ofast>
-          $<$<CONFIG:DEBUG>:-O0>
-          $<$<CONFIG:DEBUG>:-ggdb3>
-          "-fsanitize=address,undefined")
+  INTERFACE # Prefered warnings
+            $<$<CXX_COMPILER_ID:MSVC>:/W4
+            /WX>
+            $<$<CXX_COMPILER_ID:Clang>:-Weverything>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wformat=2
+            -Wno-unused-parameter
+            -Wshadow
+            -Wwrite-strings
+            -Wcast-qual
+            -Wcast-align
+            -Wconversion>
+            # Disable some warnings when using clang's Weverything
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat-pedantic>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-zero-as-null-pointer-constant>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=padded>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize-address-use-after-scope>
+            $<$<CONFIG:RELEASE>:-Ofast>
+            $<$<CONFIG:DEBUG>:-O0>
+            $<$<CONFIG:DEBUG>:-ggdb3>
+            "-fsanitize=address,undefined")
 
 target_link_options(
   RDBMS PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
 
-# API library
+# Api package
 find_package(Crow)
-target_link_libraries(RDBMS PUBLIC Crow::Crow)
+target_link_libraries(RDBMS PRIVATE Crow::Crow sql_parser)
 
 include(FetchContent)
+
+# Ctest
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git # Always fetch the
