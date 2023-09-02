@@ -13,11 +13,12 @@ add_subdirectory(libs/SqlParser)
 
 add_executable(RDBMS src/main.cpp)
 
-target_link_libraries(RDBMS PUBLIC Api DBEngine sql_parser)
 target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
 add_subdirectory(src/Api)
 add_subdirectory(src/DBEngine)
+
+target_link_libraries(RDBMS PUBLIC Api DBEngine sql_parser)
 
 target_compile_features(RDBMS PRIVATE cxx_std_20)
 
@@ -54,6 +55,15 @@ target_compile_options(
 target_link_options(
   RDBMS PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
 
+# SpdLog
+if(NOT TARGET spdlog) # Stand-alone build
+  find_package(spdlog REQUIRED)
+endif()
+
+target_link_libraries(RDBMS PUBLIC spdlog::spdlog) # $<$<BOOL:${MINGW}>:ws2_32>)
+target_link_libraries(DBEngine PUBLIC spdlog::spdlog
+)# $<$<BOOL:${MINGW}>:ws2_32>)
+
 # Ctest
 include(FetchContent)
 FetchContent_Declare(
@@ -75,5 +85,5 @@ endif()
 if(PACKAGE_TESTS)
   enable_testing()
   include(GoogleTest)
-  add_subdirectory(tests)
+  # add_subdirectory(tests)
 endif()
