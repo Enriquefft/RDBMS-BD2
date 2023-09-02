@@ -18,6 +18,7 @@ public:
   ~Api() = default;
 
   void run();
+  void handle(crow::request &req, crow::response &res);
 
 private:
   crow::SimpleApp m_app;
@@ -26,6 +27,8 @@ private:
   // doesn't allows copy, move or default construction.
   DBEngine &m_db_engine;
   SqlParser &m_sql_parser;
+
+  void set_routes();
 };
 
 #endif // !API_HPP

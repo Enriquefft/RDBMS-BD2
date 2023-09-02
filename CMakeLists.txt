@@ -8,13 +8,16 @@ project(
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
-add_executable(RDBMS src/main.cpp src/Api/Api.cpp)
-
-target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
-target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include/Api)
-
-add_subdirectory(src/DBEngine)
+# Needs to be set before add_subdirectory to generate header files
 add_subdirectory(libs/SqlParser)
+
+add_executable(RDBMS src/main.cpp)
+
+target_link_libraries(RDBMS PUBLIC Api DBEngine sql_parser)
+target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
+
+add_subdirectory(src/Api)
+add_subdirectory(src/DBEngine)
 
 target_compile_features(RDBMS PRIVATE cxx_std_20)
 
@@ -51,13 +54,8 @@ target_compile_options(
 target_link_options(
   RDBMS PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
 
-# Api package
-find_package(Crow)
-target_link_libraries(RDBMS PRIVATE Crow::Crow sql_parser)
-
-include(FetchContent)
-
 # Ctest
+include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git # Always fetch the
