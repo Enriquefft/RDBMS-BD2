@@ -8,7 +8,7 @@
 class Api {
 
 public:
-  Api(DBEngine &db_engine, SqlParser &sql_parser);
+  Api(SqlParser &sql_parser);
 
   Api() = delete;
   Api(const Api &) = delete;
@@ -25,10 +25,10 @@ private:
 
   // There is no issue with the members being references, as the Api class
   // doesn't allows copy, move or default construction.
-  DBEngine &m_db_engine;
   SqlParser &m_sql_parser;
 
   void set_routes();
+  auto parse_query(const crow::request &req);
 };
 
 #endif // !API_HPP

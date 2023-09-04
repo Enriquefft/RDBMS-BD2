@@ -63,6 +63,7 @@ endif()
 target_link_libraries(RDBMS PUBLIC spdlog::spdlog) # $<$<BOOL:${MINGW}>:ws2_32>)
 target_link_libraries(DBEngine PUBLIC spdlog::spdlog
 )# $<$<BOOL:${MINGW}>:ws2_32>)
+target_link_libraries(Api PUBLIC spdlog::spdlog)
 
 # Ctest
 include(FetchContent)

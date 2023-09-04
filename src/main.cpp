@@ -5,11 +5,11 @@
 
 int main() {
 
-  SqlParser parser;
   DBEngine engine;
+  SqlParser parser(engine);
 
-  Api api(engine, parser);
-  spdlog::info("Welcome to spdlog!");
+  Api api(parser);
+
   api.run();
 
   return 0;

@@ -24,6 +24,7 @@ public:
   /// @details Creates a new table with the name table_name. If the table
   /// already exists, it does nothing.
   void create_table(const std::string &table_name);
+  // CREATE TABLE T_NAME
 
   /// @brief get a list of all the tables in the database.
   /// @return A vector of strings containing the names of all the tables.
