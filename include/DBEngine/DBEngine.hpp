@@ -23,7 +23,7 @@ public:
   /// @param table_name The name of the table to be created.
   /// @details Creates a new table with the name table_name. If the table
   /// already exists, it does nothing.
-  void create_table(const std::string &table_name);
+  auto create_table(const std::string &table_name) -> bool;
   // CREATE TABLE T_NAME
 
   /// @brief get a list of all the tables in the database.
@@ -59,6 +59,9 @@ public:
   /// @param key The key of the value to remove.
   /// @return True if the value was removed, false otherwise.
   auto remove(std::string table_name, std::string key) -> bool;
+
+private:
+  static void generate_filepaths();
 };
 
 #endif // !DB_ENGINE_HPP

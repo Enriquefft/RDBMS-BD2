@@ -23,7 +23,7 @@ auto Api::parse_query(const crow::request &req) {
   try {
     // Parse the query and populate the response body
     std::vector<std::string> response_body;
-    m_sql_parser.parse(response_body, query);
+    // m_sql_parser.parse(response_body, query);
 
     // Convert the response body to a JSON array
     crow::json::wvalue response_body_json;

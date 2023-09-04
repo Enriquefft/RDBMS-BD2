@@ -28,7 +28,8 @@ private:
   SqlParser &m_sql_parser;
 
   void set_routes();
-  auto parse_query(const crow::request &req);
+  static auto parse_query(const crow::request &req);
+  std::function<crow::response(const crow::request &req)> m_parse_query;
 };
 
 #endif // !API_HPP

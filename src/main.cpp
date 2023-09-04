@@ -6,7 +6,8 @@
 int main() {
 
   DBEngine engine;
-  SqlParser parser(engine);
+  // SqlParser parser(engine);
+  SqlParser parser;
 
   Api api(parser);
 
