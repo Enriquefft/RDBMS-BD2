@@ -50,10 +50,10 @@ void DBEngine::generate_filepaths() {
   }
 
   // Create subdirs for each index type
-  for (const std::string_view &idx_name : Constants::INDEX_TYPES) {
+  for (const auto &idx_name : Constants::INDEX_TYPES) {
 
-    std::string name(idx_name);
-    if (create_directory(INDEX_PATH "/" + name)) {
+    // std::string name(idx_name);
+    if (create_directory(strcat(INDEX_PATH "/", idx_name))) {
       spdlog::info("Created {} subdir", idx_name);
     }
   }

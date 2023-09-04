@@ -12,8 +12,8 @@ namespace Constants {
 #define METADATA_PATH BASE_PATH "/Metadata"
 #define INDEX_PATH BASE_PATH "/Indexes"
 
-constexpr std::array<std::string_view, 3> INDEX_TYPES = {"ISAM", "Sequential",
-                                                         "OTROS xd"};
+constexpr std::array INDEX_TYPES = {"ISAM", "Sequential", "OTROS xd"};
+
 } // namespace Constants
 
 #endif // CONSTANTS_HPP
