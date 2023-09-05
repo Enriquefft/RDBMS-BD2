@@ -4,10 +4,9 @@
 #include <ios>
 
 class HeapFile {
-
+public:
   using pos_type = std::streampos;
 
-public:
   HeapFile();
 };
 
