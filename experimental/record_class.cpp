@@ -8,10 +8,10 @@ class Buffer {
 
   static std::string attributes_name[ATTR_COUNT];
   static TYPE attributes_type[ATTR_COUNT];
+  static int attr_pos[ATTR_COUNT]; // pos of attribute in data
 
   // int key_pos;
-  int attr_pos[ATTR_COUNT]; // pos of attribute in data
-  std::string buffer;       // data
+  std::string buffer; // data
 
   template <typename T> auto get_attr(int pos) -> T {
 

@@ -15,13 +15,17 @@ DBEngine::DBEngine() {
   //
 }
 
-auto DBEngine::create_table(const std::string &table_name) -> bool {
+auto DBEngine::create_table(const std::string_view &table_name) -> bool {
   // Check if table already exists
-  if (exists("DB_FILES/Tables/" + table_name)) {
+
+  std::string table_path = strcat(TABLES_PATH, table_name.data());
+
+  if (exists(table_path)) {
+    spdlog::warn("Table {} already exists.", table_name);
     return false;
   }
 
-  //
+  create_directory(table_path);
 
   return true;
 }

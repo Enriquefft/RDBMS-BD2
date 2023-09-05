@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "DBEngine/HeapFile.hpp";
+
 /**
  * class DBEngine
  * @brief The class DBEngine is the public interface for the database engine.
@@ -23,7 +25,7 @@ public:
   /// @param table_name The name of the table to be created.
   /// @details Creates a new table with the name table_name. If the table
   /// already exists, it does nothing.
-  auto create_table(const std::string &table_name) -> bool;
+  auto create_table(const std::string_view &table_name) -> bool;
   // CREATE TABLE T_NAME
 
   /// @brief get a list of all the tables in the database.
@@ -35,7 +37,7 @@ public:
   /// @param key The key to search for as a string.
   /// @return A vector of strings containing all the values associated with the
   /// key.
-  auto search(std::string table_name, std::string key)
+  auto search(std::string table_name, std::string key, std::function)
       -> std::vector<std::string>;
 
   /// @brief Search for all the keys in a table that are in the range
@@ -62,6 +64,8 @@ public:
 
 private:
   static void generate_filepaths();
+
+  HeapFile m_heap_file;
 };
 
 #endif // !DB_ENGINE_HPP
