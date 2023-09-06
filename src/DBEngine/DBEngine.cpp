@@ -18,8 +18,10 @@ DBEngine::DBEngine() {
 }
 
 template <typename... Atribute_types>
-auto DBEngine::create_table(const std::string_view &table_name,
-                            std::vector<std::string> attribute_names) -> bool {
+auto DBEngine::create_table(
+    const std::string_view &table_name,
+    std::array<std::string, sizeof...(Atribute_types)> attribute_names)
+    -> bool {
   // Check if table already exists
 
   std::string table_path = strcat(TABLES_PATH, table_name.data());
@@ -30,7 +32,9 @@ auto DBEngine::create_table(const std::string_view &table_name,
   }
   create_directory(table_path);
 
-  m_tables_raw.emplace(table_name);
+  HeapFile<Atribute_types...> heap_file(table_path, attribute_names);
+
+  m_tables_raw.push_back(heap_file);
 
   return true;
 }
