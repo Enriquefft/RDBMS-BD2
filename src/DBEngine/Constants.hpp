@@ -12,7 +12,10 @@ namespace Constants {
 #define METADATA_PATH BASE_PATH "/Metadata"
 #define INDEX_PATH BASE_PATH "/Indexes"
 
-constexpr std::array INDEX_TYPES = {"ISAM", "Sequential", "OTROS xd"};
+#define DATA_FILE "data.bin"
+#define METADATA_FILE "metadata.bin"
+
+constexpr std::array INDEX_TYPES = {"ISAM", "Sequential", "AVL"};
 
 } // namespace Constants
 

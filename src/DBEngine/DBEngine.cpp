@@ -10,12 +10,16 @@ using std::filesystem::create_directory;
 using std::filesystem::exists;
 
 DBEngine::DBEngine() {
-  generate_filepaths();
+  generate_directories();
 
-  //
+  // Read tables raw data
+
+  // Load Indexes
 }
 
-auto DBEngine::create_table(const std::string_view &table_name) -> bool {
+template <typename... Atribute_types>
+auto DBEngine::create_table(const std::string_view &table_name,
+                            std::vector<std::string> attribute_names) -> bool {
   // Check if table already exists
 
   std::string table_path = strcat(TABLES_PATH, table_name.data());
@@ -24,13 +28,14 @@ auto DBEngine::create_table(const std::string_view &table_name) -> bool {
     spdlog::warn("Table {} already exists.", table_name);
     return false;
   }
-
   create_directory(table_path);
+
+  m_tables_raw.emplace(table_name);
 
   return true;
 }
 
-void DBEngine::generate_filepaths() {
+void DBEngine::generate_directories() {
 
   std::string base_path(BASE_PATH);
 
