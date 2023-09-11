@@ -22,8 +22,9 @@ target_link_libraries(RDBMS PUBLIC Api DBEngine sql_parser)
 
 target_compile_features(RDBMS PRIVATE cxx_std_20)
 
+add_library(common INTERFACE)
 target_compile_options(
-  RDBMS
+  common
   INTERFACE # Prefered warnings
             $<$<CXX_COMPILER_ID:MSVC>:/W4
             /WX>
@@ -43,6 +44,7 @@ target_compile_options(
             $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat>
             $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat-pedantic>
             $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-extensions>
             $<$<CXX_COMPILER_ID:Clang>:-Wno-zero-as-null-pointer-constant>
             $<$<CXX_COMPILER_ID:Clang>:-Wno-error=padded>
             $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>
@@ -60,7 +62,8 @@ if(NOT TARGET spdlog) # Stand-alone build
   find_package(spdlog REQUIRED)
 endif()
 
-target_link_libraries(RDBMS PUBLIC spdlog::spdlog) # $<$<BOOL:${MINGW}>:ws2_32>)
+target_link_libraries(RDBMS PUBLIC common spdlog::spdlog
+)# $<$<BOOL:${MINGW}>:ws2_32>)
 target_link_libraries(DBEngine PUBLIC spdlog::spdlog
 )# $<$<BOOL:${MINGW}>:ws2_32>)
 target_link_libraries(Api PUBLIC spdlog::spdlog)

@@ -3,13 +3,45 @@
 
 #include <cstdint>
 #include <functional>
+#include <ios>
 #include <string>
 #include <vector>
 
 #include "HeapFile.hpp"
 
-template <uint8_t N> struct Varchar {
-  char str[N];
+enum Comp : uint8_t { EQUAL, GE, LE, G, L };
+
+class AVLIndex {
+public:
+  std::string get_attribute_name() const;
+  std::string get_table_name() const;
+
+  template <typename T>
+  std::vector<std::streampos> range_search(T begin, T end) const;
+  template <typename T> std::streampos remove(T key) const;
+  template <typename T> std::streampos search(T key) const;
+  template <typename T> bool add(T key, std::streampos pos) const;
+};
+
+class ISAMIndex {
+public:
+  std::string get_attribute_name() const;
+  std::string get_table_name() const;
+  template <typename T>
+  std::vector<std::streampos> range_search(T begin, T end) const;
+  template <typename T> std::streampos remove(T key) const;
+  template <typename T> std::streampos search(T key) const;
+  template <typename T> bool add(T key, std::streampos pos) const;
+};
+class SequentialIndex {
+public:
+  std::string get_attribute_name() const;
+  std::string get_table_name() const;
+  template <typename T>
+  std::vector<std::streampos> range_search(T begin, T end) const;
+  template <typename T> std::streampos remove(T key) const;
+  template <typename T> std::streampos search(T key) const;
+  template <typename T> bool add(T key, std::streampos pos) const;
 };
 
 /**
@@ -22,22 +54,15 @@ template <uint8_t N> struct Varchar {
  */
 class DBEngine {
 public:
+  enum class Index_t { AVL, HASH, ISAM };
+
   /// @brief The constructor of the class DBEngine.
   /// @details Constructs the class and all the necesary filepaths
   DBEngine();
 
-  /// @brief Creates a new table.
-  /// @tparam Atribute_types List of types corresponding to the attributes of
-  /// the table
-  /// @param table_name The name of the table to be created.
-  /// @param attribute_names The names of the attributes of the table.
-  /// @details Creates a new table with the name table_name. If the table
-  /// already exists, it does nothing.
-  template <typename... Atribute_types>
-  auto create_table(
-      const std::string_view &table_name,
-      std::array<std::string, sizeof...(Atribute_types)> attribute_names)
-      -> bool;
+  auto create_table(std::string table_name, const std::string &primary_key,
+                    std::vector<Type> types,
+                    std::vector<std::string> attribute_names) -> bool;
 
   /// @brief get a list of all the tables in the database.
   /// @return A vector of strings containing the names of all the tables.
@@ -48,9 +73,10 @@ public:
   /// @param key The key to search for as a string.
   /// @return A vector of strings containing all the values associated with the
   /// key.
-  auto search(std::string table_name, std::string key,
-              std::function<bool(std::string)> expr)
-      -> std::vector<std::string>;
+  auto search(const std::string &table_name, const Attribute &key,
+              const std::function<bool(Record)> &expr,
+              const std::vector<std::string> &selected_attributes)
+      -> std::string;
 
   /// @brief Search for all the keys in a table that are in the range
   /// [begin_key, end_key].
@@ -59,29 +85,71 @@ public:
   /// @param end_key The end key of the range.
   /// @return A vector of strings containing all the values associated with the
   /// key.
-  auto range_search(std::string table_name,
-                    std::pair<std::string, uint8_t> begin_key,
-                    std::string end_key) -> std::vector<std::string>;
+  auto range_search(const std::string &table_name, const Attribute &begin_key,
+                    const Attribute &end_key,
+                    const std::function<bool(Record)> &expr,
+                    const std::vector<std::string> &selected_attributes)
+      -> std::vector<std::string>;
 
   /// @brief Add a new value to a table.
   /// @param table_name The name of the table to add the value to.
   /// @param value The value to add to the table.
   /// @return True if the value was added, false otherwise.
-  auto add(std::string table_name, std::string value) -> bool;
+  auto add(const std::string &table_name, const Record &value) -> bool;
 
   /// @brief Remove a value from a table.
   /// @param table_name The name of the table to remove the value from.
   /// @param key The key of the value to remove.
   /// @return True if the value was removed, false otherwise.
-  auto remove(std::string table_name, std::string key) -> bool;
+  auto remove(const std::string &table_name, const Attribute &key) -> bool;
+
+  auto is_table(const std::string &table_name) const -> bool;
+  auto get_table_attributes(const std::string &table_name) const
+      -> std::vector<std::string>;
+
+  auto get_indexes(const std::string &table_name) const -> std::vector<Index_t>;
+  auto get_indexes_names(const std::string &table_name) const
+      -> std::vector<std::string>;
+
+  auto get_comparator(const std::string &table_name, Comp cmp,
+                      const std::string &column_name) const
+      -> std::function<bool(const std::string &value)>;
 
 private:
   static void generate_directories();
 
-  std::vector<HeapBase> m_tables_raw;
+  // Extracted from:
+  // https://www.geeksforgeeks.org/how-to-create-an-unordered_map-of-pairs-in-c/
+  struct HashPair {
+    auto operator()(const Index &index) const -> size_t {
+      auto hash1 = std::hash<std::string>{}(index.table);
+      auto hash2 = std::hash<std::string>{}(index.attribute_name);
+      if (hash1 != hash2) {
+        return hash1 ^ hash2;
+      }
+      // If hash1 == hash2, their XOR is zero.
+      return hash1;
+    }
+  };
 
-  auto get_indexes() -> std::vector<std::string>;
-  auto get_table_attributes() -> std::vector<std::string>;
+  template <typename T> using IndexMap = std::unordered_map<Index, T, HashPair>;
+
+  template <typename T> using TableMap = std::unordered_map<std::string, T>;
+
+  TableMap<HeapFile> m_tables_raw;
+  IndexMap<AVLIndex> m_avl_indexes;
+  IndexMap<ISAMIndex> m_isam_indexes;
+  IndexMap<SequentialIndex> m_sequential_indexes;
+  std::unordered_map<std::string, std::vector<Index_t>> m_index_map;
+
+  static auto stob(std::string str) -> bool;
+
+  template <typename Func>
+  void cast_and_execute(Type::types type, const std::string &attribute_value,
+                        Func func);
+  template <typename Func>
+  void cast_and_execute(Type::types type, const std::string &att1,
+                        const std::string &att2, Func func);
 };
 
 #endif // !DB_ENGINE_HPP

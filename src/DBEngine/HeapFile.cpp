@@ -7,13 +7,17 @@
 
 constexpr int DEFAULT_DELETED = -1;
 
-template <typename... Atribute_types>
-HeapFile<Atribute_types...>::HeapFile(
-    std::string table_name,
-    std::array<std::string, sizeof...(Atribute_types)> attribute_names)
+HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
+                   std::vector<std::string> attribute_names,
+                   std::string primary_key)
     : m_table_name(std::move(table_name)),
       m_table_path(TABLES_PATH "/" + m_table_name + "/"),
-      m_attribute_names(std::move(attribute_names)) {
+      m_metadata(std::move(attribute_names), std::move(types),
+                 std::move(primary_key)) {
+
+  for (const auto &type : m_metadata.attribute_types) {
+    C_RECORD_SIZE += type.size;
+  }
 
   open_or_create(m_table_path + DATA_FILE);
 
@@ -22,16 +26,15 @@ HeapFile<Atribute_types...>::HeapFile(
   }
 }
 
-template <typename... Atribute_types>
-void HeapFile<Atribute_types...>::update_first_deleted(pos_type pos) {
-  m_first_deleted = pos;
+void HeapFile::update_first_deleted(pos_type pos) {
+  m_metadata.first_deleted = pos;
   std::ofstream metadata(m_table_path + METADATA_FILE, std::ios::binary);
-  metadata.write(reinterpret_cast<const char *>(&m_first_deleted),
-                 sizeof(m_first_deleted));
+  metadata.write(reinterpret_cast<const char *>(&m_metadata.first_deleted),
+                 sizeof(m_metadata.first_deleted));
   metadata.close();
 }
-template <typename... Atribute_types>
-auto HeapFile<Atribute_types...>::read_metadata() -> bool {
+
+auto HeapFile::read_metadata() -> bool {
 
   open_or_create(m_table_path + METADATA_FILE);
 
@@ -59,6 +62,6 @@ auto HeapFile<Atribute_types...>::read_metadata() -> bool {
     return false;
   }
 
-  m_first_deleted = first_deleted;
+  m_metadata.first_deleted = first_deleted;
   return true;
 }

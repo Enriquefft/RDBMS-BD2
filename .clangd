@@ -18,6 +18,7 @@ CompileFlags:
       - "-Wno-c++98-compat-pedantic"
       - "-Wno-zero-as-null-pointer-constant"
       - "-Wno-c++20-compat"
+      - "-Wno-c++20-extensions"
 
 Diagnostics:
 

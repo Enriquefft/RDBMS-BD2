@@ -15,7 +15,7 @@ namespace Constants {
 #define DATA_FILE "data.bin"
 #define METADATA_FILE "metadata.bin"
 
-constexpr std::array INDEX_TYPES = {"ISAM", "Sequential", "AVL"};
+const std::array<std::string, 3> INDEX_TYPES = {"ISAM", "Sequential", "AVL"};
 
 } // namespace Constants
 
