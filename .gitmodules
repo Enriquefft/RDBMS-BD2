@@ -1,6 +1,3 @@
-[submodule "libs/SqlParser"]
-	path = libs/SqlParser
-	url = git@github.com:Enriquefft/parser-dbms-bd2.git
 [submodule "libs/SequentialIndex"]
 	path = libs/SequentialIndex
 	url = git@github.com:nicolas-castaneda/sequential-index.git
