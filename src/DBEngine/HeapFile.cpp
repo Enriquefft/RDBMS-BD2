@@ -2,6 +2,7 @@
 #include "Constants.hpp"
 #include "Utils/File.hpp"
 
+#include <numeric>
 #include <spdlog/spdlog.h>
 #include <utility>
 
@@ -10,14 +11,13 @@ constexpr int DEFAULT_DELETED = -1;
 HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
                    std::vector<std::string> attribute_names,
                    std::string primary_key)
-    : m_table_name(std::move(table_name)),
+    : C_RECORD_SIZE(std::accumulate(
+          types.begin(), types.end(), static_cast<uint8_t>(0),
+          [](uint8_t sum, const Type &type) { return sum + type.size; })),
+      m_table_name(std::move(table_name)),
       m_table_path(TABLES_PATH "/" + m_table_name + "/"),
       m_metadata(std::move(attribute_names), std::move(types),
                  std::move(primary_key)) {
-
-  for (const auto &type : m_metadata.attribute_types) {
-    C_RECORD_SIZE += type.size;
-  }
 
   open_or_create(m_table_path + DATA_FILE);
 

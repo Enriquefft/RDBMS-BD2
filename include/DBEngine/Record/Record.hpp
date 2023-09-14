@@ -2,8 +2,10 @@
 #define RECORD_HPP
 
 // This file contins compile time constants and type definitions
+#ifdef __clang__
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
+#endif
 
 #include <algorithm>
 #include <cstdint>
@@ -62,8 +64,8 @@ struct Type {
 namespace KEY_LIMITS {
 
 // Ignore exit-time-destructors warning
-constexpr Attribute MIN = {"MIN", "MIN"};
-constexpr Attribute MAX = {"MAX", "MAX"};
+const Attribute MIN = {"MIN", "MIN"};
+const Attribute MAX = {"MAX", "MAX"};
 
 } // namespace KEY_LIMITS
 
