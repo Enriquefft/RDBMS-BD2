@@ -1,6 +1,10 @@
 #ifndef CONSTANTS_HPP
 #define CONSTANTS_HPP
 
+// This file contins compile time constants and type definitions
+#pragma clang diagnostic ignored "-Wexit-time-destructors"
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+
 #include <array>
 #include <string>
 

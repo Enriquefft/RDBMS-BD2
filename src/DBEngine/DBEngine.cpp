@@ -46,7 +46,9 @@ auto DBEngine::create_table(std::string table_name,
   HeapFile heap_file(table_path, std::move(types), std::move(attribute_names),
                      primary_key);
 
-  m_tables_raw.insert({table_name, heap_file});
+  std::pair<const std::string, HeapFile> val{table_name, std::move(heap_file)};
+
+  m_tables_raw.insert(std::move(val));
 
   SequentialIndex sequential_index;
 
@@ -64,69 +66,6 @@ auto DBEngine::get_table_names() -> std::vector<std::string> {
   return table_names;
 }
 
-auto DBEngine::stob(std::string str) -> bool {
-
-  std::transform(str.begin(), str.end(), str.begin(),
-                 [](unsigned char c) { return std::toupper(c); });
-
-  static std::unordered_set<std::string> valid_strings = {
-      "YES", "Y", "SI", "S", "V", "VERDADERO", "T", "TRUE"};
-  return valid_strings.contains(str);
-}
-
-template <typename Func>
-void DBEngine::cast_and_execute(Type::types type,
-                                const std::string &attribute_value, Func func) {
-  switch (type) {
-  case Type::types::INT: {
-    break;
-  }
-  case Type::types::FLOAT: {
-    float key_value = std::stof(attribute_value);
-    func(key_value);
-    break;
-  }
-  case Type::types::BOOL: {
-    bool key_value = stob(attribute_value);
-    func(key_value);
-    break;
-  }
-  case Type::types::VARCHAR: {
-    func(attribute_value);
-    break;
-  }
-  }
-}
-
-template <typename Func>
-void DBEngine::cast_and_execute(Type::types type, const std::string &att1,
-                                const std::string &att2, Func func) {
-  switch (type) {
-  case Type::types::INT: {
-    int value_1 = std::stoi(att1);
-    int value_2 = std::stoi(att2);
-    func(value_1, value_2);
-    break;
-  }
-  case Type::types::FLOAT: {
-    float value_1 = std::stof(att1);
-    float value_2 = std::stof(att2);
-    func(value_1, value_2);
-    break;
-  }
-  case Type::types::BOOL: {
-    bool value_1 = stob(att1);
-    bool value_2 = stob(att2);
-    func(value_1, value_2);
-    break;
-  }
-  case Type::types::VARCHAR: {
-    func(att1, att2);
-    break;
-  }
-  }
-}
-
 auto DBEngine::search(const std::string &table_name, const Attribute &key,
                       const std::function<bool(Record)> &expr,
                       const std::vector<std::string> &selected_attributes)
@@ -134,9 +73,6 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
 
   HeapFile::pos_type pos = 0;
 
-  //
-
-  //
   auto key_type = m_tables_raw.at(table_name).get_type(key);
 
   cast_and_execute(key_type.type, key.value,

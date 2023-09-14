@@ -11,26 +11,33 @@ class HeapFile {
 public:
   using pos_type = std::streampos;
 
+  HeapFile() = default;
   explicit HeapFile(std::string table_name, std::vector<Type> types,
                     std::vector<std::string> attribute_names,
                     std::string primary_key);
 
   auto load() -> std::vector<Record>;
-  auto add(const Record &record) -> pos_type;
-  auto read(pos_type pos) -> Record;
-  auto remove(pos_type pos) -> bool;
+  auto add(const Record &record) -> pos_type { return {}; }
+  auto read(const pos_type &pos) -> Record;
+  auto remove(const pos_type &pos) -> bool { return {}; }
 
   auto get_type(const Attribute &attribute) -> Type;
   auto get_key(const Record &record) -> std::pair<Type, Attribute>;
 
   auto filter(const Record &record,
               const std::vector<std::string> &selected_attributes)
-      -> std::string;
+      -> std::string {
+    return {};
+  }
   auto filter(const std::vector<Record> &record,
               const std::vector<std::string> &selected_attributes)
-      -> std::vector<std::string>;
+      -> std::vector<std::string> {
+    return {};
+  }
 
-  [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string>;
+  [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string> {
+    return {};
+  }
 
 private:
   using enum Record::Status;
@@ -44,6 +51,9 @@ private:
     std::vector<Type> attribute_types;
     std::string primary_key;
     pos_type first_deleted{};
+
+    [[nodiscard]] auto
+    get_attribute_idx(const std::string &attribute_name) const -> uint8_t;
   };
 
   uint8_t C_RECORD_SIZE = 0;
@@ -53,7 +63,9 @@ private:
 
   TableMetadata m_metadata;
 
-  static std::fstream m_file_stream;
+  std::fstream m_file_stream;
+
+  static auto string_cast(const Type &type, const char *data) -> std::string;
 
   void update_first_deleted(pos_type pos);
   auto read_metadata() -> bool;

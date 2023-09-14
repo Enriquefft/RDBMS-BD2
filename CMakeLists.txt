@@ -8,21 +8,21 @@ project(
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
+# Subdirectories
+
 # Needs to be set before add_subdirectory to generate header files
 add_subdirectory(libs/SqlParser)
+add_subdirectory(src/Api)
+add_subdirectory(src/DBEngine)
 
 add_executable(RDBMS src/main.cpp)
 
 target_include_directories(RDBMS PRIVATE ${CMAKE_SOURCE_DIR}/include)
 
-add_subdirectory(src/Api)
-add_subdirectory(src/DBEngine)
-
-target_link_libraries(RDBMS PUBLIC Api DBEngine sql_parser)
-
-target_compile_features(RDBMS PRIVATE cxx_std_20)
+target_link_libraries(RDBMS PRIVATE Api DBEngine)
 
 add_library(common INTERFACE)
+target_compile_features(common INTERFACE cxx_std_20)
 target_compile_options(
   common
   INTERFACE # Prefered warnings
@@ -55,18 +55,18 @@ target_compile_options(
             "-fsanitize=address,undefined")
 
 target_link_options(
-  RDBMS PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
+  common INTERFACE
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
 
 # SpdLog
 if(NOT TARGET spdlog) # Stand-alone build
   find_package(spdlog REQUIRED)
 endif()
 
-target_link_libraries(RDBMS PUBLIC common spdlog::spdlog
-)# $<$<BOOL:${MINGW}>:ws2_32>)
-target_link_libraries(DBEngine PUBLIC spdlog::spdlog
-)# $<$<BOOL:${MINGW}>:ws2_32>)
-target_link_libraries(Api PUBLIC spdlog::spdlog)
+target_link_libraries(RDBMS PRIVATE spdlog::spdlog)
+target_link_libraries(RDBMS INTERFACE common)
+target_link_libraries(DBEngine PRIVATE common spdlog::spdlog)
+target_link_libraries(Api PRIVATE spdlog::spdlog)
 
 # Ctest
 include(FetchContent)

@@ -13,35 +13,60 @@ enum Comp : uint8_t { EQUAL, GE, LE, G, L };
 
 class AVLIndex {
 public:
-  std::string get_attribute_name() const;
-  std::string get_table_name() const;
+  [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
+  [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
 
   template <typename T>
-  std::vector<std::streampos> range_search(T begin, T end) const;
-  template <typename T> std::streampos remove(T key) const;
-  template <typename T> std::streampos search(T key) const;
-  template <typename T> bool add(T key, std::streampos pos) const;
+  auto range_search(T /*begin*/, T /*end*/) const
+      -> std::vector<std::streampos> {
+    return {};
+  }
+  template <typename T> auto remove(T key) const -> std::streampos {
+    return {};
+  }
+  template <typename T> auto search(T key) const -> std::streampos {
+    return {};
+  }
+  template <typename T> auto add(T key, std::streampos pos) const -> bool {
+    return {};
+  }
 };
 
 class ISAMIndex {
 public:
-  std::string get_attribute_name() const;
-  std::string get_table_name() const;
+  [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
+  [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
   template <typename T>
-  std::vector<std::streampos> range_search(T begin, T end) const;
-  template <typename T> std::streampos remove(T key) const;
-  template <typename T> std::streampos search(T key) const;
-  template <typename T> bool add(T key, std::streampos pos) const;
+  auto range_search(T begin, T end) const -> std::vector<std::streampos> {
+    return {};
+  }
+  template <typename T> auto remove(T key) const -> std::streampos {
+    return {};
+  }
+  template <typename T> auto search(T key) const -> std::streampos {
+    return {};
+  }
+  template <typename T> auto add(T key, std::streampos pos) const -> bool {
+    return {};
+  }
 };
 class SequentialIndex {
 public:
-  std::string get_attribute_name() const;
-  std::string get_table_name() const;
+  [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
+  [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
   template <typename T>
-  std::vector<std::streampos> range_search(T begin, T end) const;
-  template <typename T> std::streampos remove(T key) const;
-  template <typename T> std::streampos search(T key) const;
-  template <typename T> bool add(T key, std::streampos pos) const;
+  auto range_search(T begin, T end) const -> std::vector<std::streampos> {
+    return {};
+  }
+  template <typename T> auto remove(T key) const -> std::streampos {
+    return {};
+  }
+  template <typename T> auto search(T key) const -> std::streampos {
+    return {};
+  }
+  template <typename T> auto add(T key, std::streampos pos) const -> bool {
+    return {};
+  }
 };
 
 /**
@@ -109,11 +134,15 @@ public:
 
   auto get_indexes(const std::string &table_name) const -> std::vector<Index_t>;
   auto get_indexes_names(const std::string &table_name) const
-      -> std::vector<std::string>;
+      -> std::vector<std::string> {
+    return {};
+  }
 
   auto get_comparator(const std::string &table_name, Comp cmp,
                       const std::string &column_name) const
-      -> std::function<bool(const std::string &value)>;
+      -> std::function<bool(const std::string &value)> {
+    return {};
+  }
 
 private:
   static void generate_directories();
@@ -144,12 +173,12 @@ private:
 
   static auto stob(std::string str) -> bool;
 
-  template <typename Func>
-  void cast_and_execute(Type::types type, const std::string &attribute_value,
-                        Func func);
-  template <typename Func>
-  void cast_and_execute(Type::types type, const std::string &att1,
-                        const std::string &att2, Func func);
+  // template <typename Func>
+  // void cast_and_execute(Type::types type, const std::string &attribute_value,
+  //                       Func func);
+  // template <typename Func>
+  // void cast_and_execute(Type::types type, const std::string &att1,
+  //                       const std::string &att2, Func func);
 };
 
 #endif // !DB_ENGINE_HPP
