@@ -12,80 +12,62 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 # Targets
 add_executable(RDBMS src/main.cpp)
 
-# add_subdirectory(src/Api) # Api
+add_subdirectory(src/Api) # Api
 add_subdirectory(src/DBEngine) # DBEngine
-
-# Needs to be set early to generate header files
 add_subdirectory(libs/SqlParser) # SqlParser
 
 # ##############################################################################
 # library dependance
-target_link_libraries(SqlParser PRIVATE DBEngine)
-# target_link_libraries(Api PUBLIC SqlParser)
-target_link_libraries(RDBMS PRIVATE SqlParser)
+target_link_libraries(SqlParser PUBLIC DBEngine)
+target_link_libraries(Api PUBLIC SqlParser)
+target_link_libraries(RDBMS PRIVATE Api)
 
 # ##############################################################################
 
-target_include_directories(RDBMS PRIVATE include/DBEngine)
-
-target_compile_features(RDBMS PRIVATE cxx_std_20)
+add_library(common INTERFACE)
+target_compile_features(common INTERFACE cxx_std_20)
 target_compile_options(
-  RDBMS
-  PRIVATE # Prefered warnings
-          $<$<CXX_COMPILER_ID:MSVC>:/W4
-          /WX>
-          $<$<CXX_COMPILER_ID:Clang>:-Weverything>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:
-          -Werror
-          -Wall
-          -Wextra
-          -Wpedantic
-          -Wformat=2
-          -Wno-unused-parameter
-          -Wshadow
-          -Wwrite-strings
-          -Wcast-qual
-          -Wcast-align
-          -Wconversion>
-          # Disable some warnings when using clang's Weverything
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat>
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat-pedantic>
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat>
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-extensions>
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-zero-as-null-pointer-constant>
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-error=padded>
-          $<$<CXX_COMPILER_ID:Clang>:-Wno-switch-enum>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>
-          $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize-address-use-after-scope>
-          $<$<CONFIG:RELEASE>:-Ofast>
-          $<$<CONFIG:DEBUG>:-O0>
-          $<$<CONFIG:DEBUG>:-ggdb3>)
+  common
+  INTERFACE # Prefered warnings
+            $<$<CXX_COMPILER_ID:MSVC>:/W4
+            /WX>
+            $<$<CXX_COMPILER_ID:Clang>:-Weverything>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wformat=2
+            -Wno-unused-parameter
+            -Wshadow
+            -Wwrite-strings
+            -Wcast-qual
+            -Wcast-align
+            -Wconversion>
+            # Disable some warnings when using clang's Weverything
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat-pedantic>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-compat>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c++20-extensions>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-c99-extensions>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-zero-as-null-pointer-constant>
+            $<$<CXX_COMPILER_ID:Clang>:-Wno-error=padded>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize-address-use-after-scope>
+            $<$<CONFIG:RELEASE>:-Ofast>
+            $<$<CONFIG:DEBUG>:-O0>
+            $<$<CONFIG:DEBUG>:-ggdb3>
+            "-fsanitize=address,undefined")
 
 target_link_options(
-  RDBMS PRIVATE $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
+  common INTERFACE
+  $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
 
-target_link_libraries(DBEngine PRIVATE spdlog::spdlog)
-target_link_libraries(RDBMS PRIVATE spdlog::spdlog)
-target_link_libraries(SqlParser PRIVATE spdlog::spdlog)
+target_link_libraries(RDBMS PRIVATE common)
+target_link_libraries(Api PRIVATE common)
+target_link_libraries(DBEngine PRIVATE common)
 
-get_target_property(SQLPARSER_LIBS SqlParser LINK_LIBRARIES)
-get_target_property(SQLPARSER_INCLUDES SqlParser INCLUDE_DIRECTORIES)
-
-get_target_property(DBENGINE_LIBS DBEngine LINK_LIBRARIES)
-get_target_property(DBENGINE_INCLUDES DBEngine INCLUDE_DIRECTORIES)
-
-# get_target_property(API_LIBS Api LINK_LIBRARIES)
-# get_target_property(API_INCLUDES Api INCLUDE_DIRECTORIES)
-
-message("SqlParser is linked with: ${SQLPARSER_LIBS}")
-message("SqlParser include dirs: ${SQLPARSER_INCLUDES}")
-
-message("Api is linked with: ${API_LIBS}")
-message("Api include: ${API_INCLUDES}")
-
-message("Engine is linked with: ${DBENGINE_LIBS}")
-message("engine include: ${API_INCLUDES}")
 # SpdLog
+target_link_libraries(DBEngine PUBLIC spdlog::spdlog)
 if(NOT TARGET spdlog) # Stand-alone build
   find_package(spdlog REQUIRED)
 endif()
@@ -111,5 +93,5 @@ endif()
 if(PACKAGE_TESTS)
   enable_testing()
   include(GoogleTest)
-  # add_subdirectory(tests)
+  add_subdirectory(tests)
 endif()

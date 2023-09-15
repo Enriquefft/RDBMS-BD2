@@ -8,7 +8,7 @@ class ApiTests : public ::testing::Test {
 protected:
   SqlParser parser;
   DBEngine database;
-  Api app{database, parser};
+  Api app;
 };
 
 TEST_F(ApiTests, Status200) {

@@ -18,7 +18,7 @@ macro(package_add_test TESTNAME)
     gtest
     gmock
     gtest_main
-    sql_parser
+    SqlParser
     Api
     DBEngine)
 
