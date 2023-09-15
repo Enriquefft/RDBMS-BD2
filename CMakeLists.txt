@@ -37,7 +37,6 @@ target_compile_options(
             -Wextra
             -Wpedantic
             -Wformat=2
-            -Wno-unused-parameter
             -Wshadow
             -Wwrite-strings
             -Wcast-qual
