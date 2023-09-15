@@ -7,7 +7,7 @@
 
 constexpr std::uint16_t PORT = 8080;
 
-Api::Api(SqlParser &sql_parser) : m_sql_parser(sql_parser) { set_routes(); }
+Api::Api() { set_routes(); }
 
 auto Api::parse_query(const crow::request &req) {
   std::cout << "Received query request" << std::endl;
@@ -48,7 +48,10 @@ auto Api::parse_query(const crow::request &req) {
 
 void Api::set_routes() {
 
-  CROW_ROUTE(m_app, "/query").methods(crow::HTTPMethod::POST)(parse_query);
+  m_app
+      .template route<crow ::black_magic ::get_parameter_tag("/query")>(
+          "/query")
+      .methods(crow::HTTPMethod::POST)(parse_query);
 
   m_app.validate(); // Used to make sure all the route handlers are in order.
 }

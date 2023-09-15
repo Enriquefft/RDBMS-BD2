@@ -1,17 +1,13 @@
-#include "Api/Api.hpp"
-#include "DBEngine/DBEngine.hpp"
+// #include "Api.hpp"
 #include "SqlParser.hpp"
 #include "spdlog/spdlog.h"
 
 int main() {
 
-  DBEngine engine;
+  // Api api;
 
-  SqlParser parser(engine);
-
-  Api api(parser);
-
-  api.run();
+  // api.run();
+  SqlParser p;
 
   return 0;
 }
