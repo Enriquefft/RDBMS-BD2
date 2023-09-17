@@ -1,6 +1,7 @@
 #ifndef API_HPP
 #define API_HPP
 
+#include "DBEngine.hpp"
 #include "SqlParser.hpp"
 #include "crow.h"
 
@@ -16,6 +17,7 @@ public:
 
   void run();
   void handle(crow::request &req, crow::response &res);
+  static auto get_engine() -> DBEngine & { return m_sql_parser.get_engine(); }
 
 private:
   crow::SimpleApp m_app;

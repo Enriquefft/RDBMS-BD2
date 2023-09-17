@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
+#include <limits>
 #include <memory>
 #include <ranges>
 #include <stdexcept>
@@ -238,6 +239,10 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
         });
     return cmp == EQUAL;
   };
+}
+
+void DBEngine::drop_table(const std::string &table_name) {
+  std::filesystem::remove_all(TABLES_PATH + table_name);
 }
 
 void DBEngine::generate_directories() {

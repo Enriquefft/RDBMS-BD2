@@ -56,7 +56,6 @@ void Api::set_routes() {
       .template route<crow ::black_magic ::get_parameter_tag("/query")>(
           "/query")
       .methods(crow::HTTPMethod::POST)(Api::parse_query);
-
   m_app.validate(); // Used to make sure all the route handlers are in order.
 }
 

@@ -146,6 +146,7 @@ public:
                       const std::string &column_name,
                       const std::string &string_to_compare) const
       -> std::function<bool(const Record &record)>;
+  static void drop_table(const std::string &table_name);
 
 private:
   static void generate_directories();

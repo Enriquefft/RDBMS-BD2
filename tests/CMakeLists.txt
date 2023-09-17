@@ -37,3 +37,4 @@ endmacro()
 
 package_add_test(apiTest apiTest.cpp)
 package_add_test(createTableTest createTable.cpp)
+package_add_test(bulkInsertTest bulkInsert.cpp)
