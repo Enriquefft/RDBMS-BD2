@@ -22,7 +22,7 @@ private:
 
   // There is no issue with the members being references, as the Api class
   // doesn't allows copy, move or default construction.
-  SqlParser m_sql_parser;
+  inline static SqlParser m_sql_parser = SqlParser();
 
   void set_routes();
   static auto parse_query(const crow::request &req);

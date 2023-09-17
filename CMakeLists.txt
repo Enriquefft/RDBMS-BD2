@@ -83,7 +83,7 @@ FetchContent_Declare(
 set(gtest_force_shared_crt
     ON
     CACHE BOOL "" FORCE)
-# FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(googletest)
 
 if(PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
   option(PACKAGE_TESTS "Build the tests" ON)

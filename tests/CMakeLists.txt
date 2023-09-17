@@ -36,3 +36,4 @@ macro(package_add_test TESTNAME)
 endmacro()
 
 package_add_test(apiTest apiTest.cpp)
+package_add_test(createTableTest createTable.cpp)

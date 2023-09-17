@@ -86,6 +86,19 @@ private:
   auto read_metadata() -> bool;
   static void generate_deleted_record(char *deleted, int pos);
   [[nodiscard]] auto is_deleted(pos_type pos) const -> bool;
+  void write_metadata();
+
+  auto to_string() -> std::string {
+    std::string str;
+    str += "Table name: " + m_table_name + "\n";
+    str += "Attribute names: ";
+    for (ulong i = 0; i < m_metadata.attribute_types.size(); i++) {
+      str += m_metadata.attribute_names[i] + " ";
+      str += m_metadata.attribute_types[i].to_string() + " ";
+    }
+    str += "Primary key: " + m_metadata.primary_key + "\n";
+    return str;
+  }
 };
 
 #endif // !HEAP_FILE_HPP

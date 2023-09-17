@@ -1,13 +1,9 @@
 #include "Api/Api.hpp"
-#include "DBEngine/DBEngine.hpp"
 #include <crow/app.h>
 #include <gtest/gtest.h>
 
 class ApiTests : public ::testing::Test {
-
 protected:
-  SqlParser parser;
-  DBEngine database;
   Api app;
 };
 

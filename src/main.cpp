@@ -1,13 +1,7 @@
-// #include "Api.hpp"
-#include "SqlParser.hpp"
-#include "spdlog/spdlog.h"
+#include "Api.hpp"
 
-int main() {
-
-  // Api api;
-
-  // api.run();
-  SqlParser p;
-
+auto main() -> int {
+  Api api;
+  api.run();
   return 0;
 }

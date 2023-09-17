@@ -3,6 +3,7 @@
 #include <crow/common.h>
 #include <cstdint>
 #include <spdlog/spdlog.h>
+#include <sstream>
 #include <stdexcept>
 
 constexpr std::uint16_t PORT = 8080;
@@ -22,8 +23,11 @@ auto Api::parse_query(const crow::request &req) {
 
   try {
     // Parse the query and populate the response body
-    std::vector<std::string> response_body;
-    // m_sql_parser.parse(response_body, query);
+
+    std::istringstream query_buffer(query);
+
+    std::vector<std::string> response_body =
+        Api::m_sql_parser.parse(query_buffer);
 
     // Convert the response body to a JSON array
     crow::json::wvalue response_body_json;
@@ -51,7 +55,7 @@ void Api::set_routes() {
   m_app
       .template route<crow ::black_magic ::get_parameter_tag("/query")>(
           "/query")
-      .methods(crow::HTTPMethod::POST)(parse_query);
+      .methods(crow::HTTPMethod::POST)(Api::parse_query);
 
   m_app.validate(); // Used to make sure all the route handlers are in order.
 }

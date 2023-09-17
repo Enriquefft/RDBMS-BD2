@@ -65,6 +65,25 @@ struct Type {
   }
   Type(const types &_type, const int &_size)
       : Type(_type, static_cast<size_type>(_size)) {}
+  std::string to_string() {
+    std::string str;
+    switch (type) {
+    case BOOL:
+      str += "BOOL";
+      break;
+    case INT:
+      str += "INT";
+      break;
+    case FLOAT:
+      str += "FLOAT";
+      break;
+    case VARCHAR:
+      str += "VARCHAR";
+      break;
+    }
+    str += "Size: " + std::to_string(size) + '\n';
+    return str;
+  }
 };
 
 namespace KEY_LIMITS {

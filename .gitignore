@@ -1,6 +1,7 @@
 /build
 /docs
 /.cache
+/DB_FILES
 
 # Prerequisites
 *.d

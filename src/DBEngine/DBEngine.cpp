@@ -34,18 +34,16 @@ auto DBEngine::create_table(std::string table_name,
   // Check if table already exists
   std::string table_path = TABLES_PATH + table_name;
 
-  //
   if (exists(table_path)) {
     spdlog::warn("Table {} already exists doing nothing.", table_name);
     return false;
   }
 
-  //
+  spdlog::info("Creating table {} in dir {}", table_name, table_path);
 
-  //
   create_directory(table_path);
 
-  HeapFile heap_file(table_path, std::move(types), std::move(attribute_names),
+  HeapFile heap_file(table_name, std::move(types), std::move(attribute_names),
                      primary_key);
 
   std::pair<const std::string, HeapFile> val{table_name, std::move(heap_file)};

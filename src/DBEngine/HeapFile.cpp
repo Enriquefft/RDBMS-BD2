@@ -3,6 +3,7 @@
 #include "Utils/File.hpp"
 
 #include <numeric>
+#include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 #include <utility>
 
@@ -15,7 +16,7 @@ HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
           types.begin(), types.end(), static_cast<uint8_t>(0),
           [](uint8_t sum, const Type &type) { return sum + type.size; })),
       m_table_name(std::move(table_name)),
-      m_table_path(TABLES_PATH "/" + m_table_name + "/"),
+      m_table_path(TABLES_PATH + m_table_name + "/"),
       m_metadata(std::move(attribute_names), std::move(types),
                  std::move(primary_key)) {
 
@@ -55,9 +56,18 @@ auto HeapFile::remove(const pos_type & /*pos*/) -> bool { return {}; }
 
 void HeapFile::update_first_deleted(pos_type pos) {
   m_metadata.first_deleted = pos;
+
+  write_metadata();
+}
+
+void HeapFile::write_metadata() {
   std::ofstream metadata(m_table_path + METADATA_FILE, std::ios::binary);
-  metadata.write(reinterpret_cast<const char *>(&m_metadata.first_deleted),
-                 sizeof(m_metadata.first_deleted));
+  if (!metadata.write(reinterpret_cast<const char *>(&m_metadata),
+                      sizeof(m_metadata))) {
+    spdlog::error("Could not write metadata of table {}", m_table_name);
+  }
+  spdlog::info("Metadata of table {} written\n", m_table_name);
+  spdlog::info(to_string());
   metadata.close();
 }
 
@@ -127,6 +137,8 @@ auto HeapFile::get_attribute_names() const -> std::vector<std::string> {
 }
 auto HeapFile::read_metadata() -> bool {
 
+  spdlog::info("Reading metadata from table {}", m_table_name);
+
   open_or_create(m_table_path + METADATA_FILE);
 
   std::ifstream file(
@@ -136,8 +148,9 @@ auto HeapFile::read_metadata() -> bool {
 
   // File must contain a single integer
   std::streamsize size = file.tellg();
-  if (size != sizeof(int)) {
-    spdlog::error("Metadata file {} is corrupted.",
+
+  if (size != sizeof(TableMetadata)) {
+    spdlog::error("Metadata file {} is corrupted or empty",
                   m_table_path + METADATA_FILE);
     file.close();
     return false;
@@ -145,14 +158,12 @@ auto HeapFile::read_metadata() -> bool {
 
   file.seekg(0, std::ios::beg);
 
-  int first_deleted = 0;
   // The file must be readable
-  if (!file.read(reinterpret_cast<char *>(&first_deleted), sizeof(int))) {
-    spdlog::error("Error reading pos(int) from file {}",
+  if (!file.read(reinterpret_cast<char *>(&m_metadata), sizeof(int))) {
+    spdlog::error("Error reading metadata from file {}",
                   m_table_path + METADATA_FILE);
     return false;
   }
 
-  m_metadata.first_deleted = first_deleted;
   return true;
 }
