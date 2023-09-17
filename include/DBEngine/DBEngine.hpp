@@ -21,13 +21,14 @@ public:
       -> std::vector<std::streampos> {
     return {};
   }
-  template <typename T> auto remove(T key) const -> std::streampos {
+  template <typename T> auto remove(T /*key*/) const -> std::streampos {
     return {};
   }
-  template <typename T> auto search(T key) const -> std::streampos {
+  template <typename T> auto search(T /*key*/) const -> std::streampos {
     return {};
   }
-  template <typename T> auto add(T key, std::streampos pos) const -> bool {
+  template <typename T>
+  auto add(T /*key*/, std::streampos /*pos*/) const -> bool {
     return {};
   }
 };
@@ -37,34 +38,39 @@ public:
   [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
   [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
   template <typename T>
-  auto range_search(T begin, T end) const -> std::vector<std::streampos> {
+  auto range_search(T /*begin*/, T /*end*/) const
+      -> std::vector<std::streampos> {
     return {};
   }
-  template <typename T> auto remove(T key) const -> std::streampos {
+  template <typename T> auto remove(T /*key*/) const -> std::streampos {
     return {};
   }
-  template <typename T> auto search(T key) const -> std::streampos {
+  template <typename T> auto search(T /*key*/) const -> std::streampos {
     return {};
   }
-  template <typename T> auto add(T key, std::streampos pos) const -> bool {
+  template <typename T>
+  auto add(T /*key*/, std::streampos /*pos*/) const -> bool {
     return {};
   }
 };
+
 class SequentialIndex {
 public:
   [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
   [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
   template <typename T>
-  auto range_search(T begin, T end) const -> std::vector<std::streampos> {
+  auto range_search(T /*begin*/, T /*end*/) const
+      -> std::vector<std::streampos> {
     return {};
   }
-  template <typename T> auto remove(T key) const -> std::streampos {
+  template <typename T> auto remove(T /*key*/) const -> std::streampos {
     return {};
   }
-  template <typename T> auto search(T key) const -> std::streampos {
+  template <typename T> auto search(T /*key*/) const -> std::streampos {
     return {};
   }
-  template <typename T> auto add(T key, std::streampos pos) const -> bool {
+  template <typename T>
+  auto add(T /*key*/, std::streampos /*pos*/) const -> bool {
     return {};
   }
 };
@@ -134,15 +140,12 @@ public:
 
   auto get_indexes(const std::string &table_name) const -> std::vector<Index_t>;
   auto get_indexes_names(const std::string &table_name) const
-      -> std::vector<std::string> {
-    return {};
-  }
+      -> std::vector<std::string>;
 
   auto get_comparator(const std::string &table_name, Comp cmp,
-                      const std::string &column_name) const
-      -> std::function<bool(const std::string &value)> {
-    return {};
-  }
+                      const std::string &column_name,
+                      const std::string &string_to_compare) const
+      -> std::function<bool(const Record &record)>;
 
 private:
   static void generate_directories();

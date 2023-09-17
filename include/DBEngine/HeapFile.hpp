@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <numeric>
 #include <vector>
 
 class HeapFile {
@@ -17,26 +18,31 @@ public:
                     std::string primary_key);
 
   auto load() -> std::vector<Record>;
-  auto add(const Record &record) -> pos_type { return {}; }
+  auto add(const Record &record) -> pos_type;
   auto read(const pos_type &pos) -> Record;
-  auto remove(const pos_type &pos) -> bool { return {}; }
+  auto remove(const pos_type &pos) -> bool;
 
-  auto get_type(const Attribute &attribute) -> Type;
-  auto get_key(const Record &record) -> std::pair<Type, Attribute>;
+  auto get_type(const std::string &attribute_name) const -> Type;
+  auto get_type(const Attribute &attribute) const -> Type;
 
-  auto filter(const Record &record,
-              const std::vector<std::string> &selected_attributes)
+  auto get_key(const Record &record) const -> std::pair<Type, Attribute>;
+
+  auto filter(const Record & /*record*/,
+              const std::vector<std::string> & /*selected_attributes*/) const
       -> std::string {
     return {};
   }
-  auto filter(const std::vector<Record> &record,
-              const std::vector<std::string> &selected_attributes)
+  auto filter(const std::vector<Record> & /*record*/,
+              const std::vector<std::string> & /*selected_attributes*/) const
       -> std::vector<std::string> {
     return {};
   }
 
-  [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string> {
-    return {};
+  [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string>;
+  [[nodiscard]] auto get_index_names() const -> std::vector<std::string>;
+  [[nodiscard]] auto get_attribute_idx(const std::string &attribute_name) const
+      -> uint8_t {
+    return m_metadata.get_attribute_idx(attribute_name);
   }
 
 private:
@@ -54,6 +60,15 @@ private:
 
     [[nodiscard]] auto
     get_attribute_idx(const std::string &attribute_name) const -> uint8_t;
+    [[nodiscard]] auto record_count() const -> std::size_t {
+      return attribute_types.size();
+    }
+    auto size() -> uint64_t {
+      return std::accumulate(
+          attribute_types.begin(), attribute_types.end(),
+          static_cast<uint8_t>(0),
+          [](uint8_t sum, const Type &type) { return sum + type.size; });
+    }
   };
 
   uint8_t C_RECORD_SIZE = 0;

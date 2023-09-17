@@ -16,6 +16,8 @@
 using std::filesystem::create_directory;
 using std::filesystem::exists;
 
+constexpr float FLOAT_EPSILON = 0.001F;
+
 DBEngine::DBEngine() {
   generate_directories();
 
@@ -180,6 +182,64 @@ auto DBEngine::get_table_attributes(const std::string &table_name) const
 auto DBEngine::get_indexes(const std::string &table_name) const
     -> std::vector<Index_t> {
   return m_index_map.at(table_name);
+}
+auto DBEngine::get_indexes_names(const std::string &table_name) const
+    -> std::vector<std::string> {
+  std::vector<std::string> indexes_names;
+
+  for (const auto &avl_index : m_avl_indexes) {
+    if (avl_index.first.table == table_name) {
+      indexes_names.push_back(avl_index.first.attribute_name);
+    }
+  }
+  for (const auto &isam_index : m_isam_indexes) {
+    if (isam_index.first.table == table_name) {
+      indexes_names.push_back(isam_index.first.attribute_name);
+    }
+  }
+  for (const auto &sequential_index : m_sequential_indexes) {
+    if (sequential_index.first.table == table_name) {
+      indexes_names.push_back(sequential_index.first.attribute_name);
+    }
+  }
+
+  return indexes_names;
+}
+
+auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
+                              const std::string &column_name,
+                              const std::string &string_to_compare) const
+    -> std::function<bool(const Record &record)> {
+
+  auto type = m_tables_raw.at(table_name).get_type(column_name);
+  auto index = m_tables_raw.at(table_name).get_attribute_idx(column_name);
+
+  return [&type, &cmp, &string_to_compare, &index](const Record &record) {
+    const auto *attribute_raw = record.m_fields.at(index).data();
+    cast_and_execute(
+        type.type, string_to_compare, attribute_raw,
+        [&cmp](auto compare_value, auto record_value) {
+          switch (cmp) {
+          case EQUAL:
+            if constexpr (std::is_same_v<decltype(compare_value), float>) {
+              return compare_value - record_value < FLOAT_EPSILON;
+            } else {
+              return compare_value == record_value;
+            }
+          case LE:
+            return compare_value <= record_value;
+          case G:
+            return compare_value > record_value;
+
+          case L:
+            return compare_value < record_value;
+          case GE:
+            return compare_value >= record_value;
+          }
+        });
+
+    return cmp == EQUAL;
+  };
 }
 
 void DBEngine::generate_directories() {

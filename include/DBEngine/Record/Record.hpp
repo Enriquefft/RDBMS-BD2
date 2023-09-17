@@ -2,6 +2,7 @@
 #define RECORD_HPP
 
 // This file contins compile time constants and type definitions
+#include <limits>
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
@@ -14,6 +15,8 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+#include "Utils/gsl.hpp"
 
 struct Attribute {
   std::string name;
@@ -33,7 +36,10 @@ struct Type {
 
   enum types : char { BOOL = 'b', INT = 'i', FLOAT = 'f', VARCHAR = 'c' };
 
-  using size_type = std::size_t;
+  using size_type = uint16_t;
+
+  static constexpr size_type MAX_VARCHAR_SIZE =
+      std::numeric_limits<size_type>::max();
 
   size_type size;
   types type;
@@ -70,17 +76,18 @@ const Attribute MAX = {"MAX", "MAX"};
 } // namespace KEY_LIMITS
 
 struct Record {
+  using size_type = std::size_t;
 
   enum class Status : bool { DELETED = false, OK = true };
 
   Record() = default;
 
-  std::vector<char *> fields;
+  std::vector<std::vector<char>> m_fields;
 
-  void write(std::fstream &file, const std::vector<Type> &types) {}
-  auto read(std::fstream &file, const std::vector<Type> &types) -> Record {
-    return {};
-  }
+  auto write(std::fstream &file, const std::vector<Type> &types)
+      -> std::ostream &;
+  auto read(std::fstream &file, const std::vector<Type> &types)
+      -> std::istream &;
 };
 
 inline auto stob(std::string str) -> bool {
