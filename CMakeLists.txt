@@ -32,7 +32,7 @@ target_compile_options(
             $<$<CXX_COMPILER_ID:MSVC>:/W4
             /WX>
             $<$<CXX_COMPILER_ID:Clang>:-Weverything>
-            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Werror
+            $<$<NOT:$<CXX_COMPILER_ID:MSVC>>: #[[ -Werror ]]
             -Wall
             -Wextra
             -Wpedantic

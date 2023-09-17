@@ -236,8 +236,8 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
           case GE:
             return compare_value >= record_value;
           }
+          throw std::runtime_error("Not valid comparator");
         });
-
     return cmp == EQUAL;
   };
 }
