@@ -15,7 +15,7 @@ HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
           types.begin(), types.end(), static_cast<uint8_t>(0),
           [](uint8_t sum, const Type &type) { return sum + type.size; })),
       m_table_name(std::move(table_name)),
-      m_table_path(TABLES_PATH "/" + m_table_name + "/"),
+      m_table_path( m_table_name + "/"),
       m_metadata(std::move(attribute_names), std::move(types),
                  std::move(primary_key)) {
 
