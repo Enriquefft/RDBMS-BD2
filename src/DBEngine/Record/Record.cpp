@@ -10,6 +10,8 @@
 #include <memory>
 #include <numeric>
 
+using DB_ENGINE::Record;
+
 auto Record::write(std::fstream &file, const std::vector<Type> &types)
     -> std::ostream & {
   int64_t buffer_size = std::accumulate(

@@ -14,12 +14,14 @@
 #include "Constants.hpp"
 #include "DBEngine.hpp"
 
-using std::filesystem::create_directory;
-using std::filesystem::exists;
+using DB_ENGINE::DBEngine;
+
+using ::std::filesystem::create_directory;
+using ::std::filesystem::exists;
 
 constexpr float FLOAT_EPSILON = 0.001F;
 
-DBEngine::DBEngine() {
+DB_ENGINE::DBEngine::DBEngine() {
   generate_directories();
 
   // Read tables raw data

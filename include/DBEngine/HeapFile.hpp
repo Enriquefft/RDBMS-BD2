@@ -8,6 +8,8 @@
 #include <numeric>
 #include <vector>
 
+namespace DB_ENGINE {
+
 class HeapFile {
 public:
   using pos_type = std::streampos;
@@ -100,5 +102,7 @@ private:
     return str;
   }
 };
+
+} // namespace DB_ENGINE
 
 #endif // !HEAP_FILE_HPP

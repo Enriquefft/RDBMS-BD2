@@ -16,7 +16,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Utils/gsl.hpp"
+namespace DB_ENGINE {
 
 struct Attribute {
   std::string name;
@@ -29,7 +29,7 @@ struct Index {
   std::string attribute_name;
 
   // spaceship operator
-  auto operator<=>(const Index &) const = default;
+  friend auto operator<=>(const Index &, const Index &) = default;
 };
 
 struct Type {
@@ -171,5 +171,6 @@ inline void cast_and_execute(Type::types type, const std::string &att1,
   }
   }
 }
+} // namespace DB_ENGINE
 
 #endif // !RECORD_HPP

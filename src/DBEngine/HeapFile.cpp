@@ -9,6 +9,8 @@
 
 constexpr int DEFAULT_DELETED = -1;
 
+using DB_ENGINE::HeapFile;
+
 HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
                    std::vector<std::string> attribute_names,
                    std::string primary_key)

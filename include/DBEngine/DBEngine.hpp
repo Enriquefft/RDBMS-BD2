@@ -4,31 +4,41 @@
 #include <cstdint>
 #include <functional>
 #include <ios>
+#include <spdlog/spdlog.h>
 #include <string>
+#include <variant>
 #include <vector>
 
 #include "HeapFile.hpp"
 
+namespace DB_ENGINE {
+
 enum Comp : uint8_t { EQUAL, GE, LE, G, L };
 
-class AVLIndex {
+template <typename T> class AVLIndex {
 public:
   [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
   [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
 
-  template <typename T>
-  auto range_search(T /*begin*/, T /*end*/) const
+  [[nodiscard]] auto range_search(T begin, T end) const
       -> std::vector<std::streampos> {
+    spdlog::info("Searching range [{}, {}] in AVL index", begin, end);
     return {};
   }
-  template <typename T> auto remove(T /*key*/) const -> std::streampos {
+
+  [[nodiscard]] auto remove(T key) const -> std::streampos {
+    spdlog::info("Removing key {} from AVL index", key);
     return {};
   }
-  template <typename T> auto search(T /*key*/) const -> std::streampos {
+
+  [[nodiscard]] auto search(T key) const -> std::streampos {
+    spdlog::info("Searching key {} in AVL index", key);
+
     return {};
   }
-  template <typename T>
-  auto add(T /*key*/, std::streampos /*pos*/) const -> bool {
+
+  [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
+    spdlog::info("Adding key {} to AVL index with pos {}", key, pos);
     return {};
   }
 };
@@ -73,6 +83,12 @@ public:
   auto add(T /*key*/, std::streampos /*pos*/) const -> bool {
     return {};
   }
+};
+
+class AvlIndexContainer {
+  std::variant<AVLIndex<int>, AVLIndex<float>, AVLIndex<std::string>,
+               AVLIndex<bool>>
+      m_idx;
 };
 
 /**
@@ -170,7 +186,7 @@ private:
   template <typename T> using TableMap = std::unordered_map<std::string, T>;
 
   TableMap<HeapFile> m_tables_raw;
-  IndexMap<AVLIndex> m_avl_indexes;
+  IndexMap<AvlIndexContainer> m_avl_indexes;
   IndexMap<ISAMIndex> m_isam_indexes;
   IndexMap<SequentialIndex> m_sequential_indexes;
   std::unordered_map<std::string, std::vector<Index_t>> m_index_map;
@@ -184,5 +200,7 @@ private:
   // void cast_and_execute(Type::types type, const std::string &att1,
   //                       const std::string &att2, Func func);
 };
+
+} // namespace DB_ENGINE
 
 #endif // !DB_ENGINE_HPP
