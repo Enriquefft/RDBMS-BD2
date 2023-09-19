@@ -58,15 +58,13 @@ target_compile_options(
             $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize-address-use-after-scope>
             $<$<CONFIG:RELEASE>:-O0>
             $<$<CONFIG:DEBUG>:-O0>
-            $<$<CONFIG:DEBUG>:-ggdb3>
-            $<$<CXX_COMPILER_ID:Clang>:-fexperimental-library>)
+            $<$<CONFIG:DEBUG>:-ggdb3>)
 
 target_link_options(
   common INTERFACE
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
 
-
-#Threads why??
+# Threads why??
 set(THREADS_HAVE_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(DBEngine PUBLIC Threads::Threads)
