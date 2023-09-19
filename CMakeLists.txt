@@ -70,8 +70,16 @@ target_link_libraries(Api PRIVATE common)
 target_link_libraries(DBEngine PRIVATE common)
 
 # SpdLog
-target_include_directories(DBEngine SYSTEM
-                           PUBLIC ${CMAKE_SOURCE_DIR}/libs/SpdLog/)
+
+find_package(spdlog QUIET REQUIRED)
+
+if(spdlog_FOUND)
+  target_link_libraries(DBEngine PUBLIC spdlog::spdlog)
+else()
+  # Only use this if spdlog is not installed on your system
+  target_include_directories(DBEngine SYSTEM
+                             PUBLIC ${CMAKE_SOURCE_DIR}/libs/SpdLog/)
+endif()
 
 # Ctest
 include(FetchContent)

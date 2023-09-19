@@ -4,6 +4,7 @@
 #include <spdlog/spdlog.h>
 #include <string>
 #include <type_traits>
+#include <variant>
 
 template <typename T>
 // T must be int, float, string or bool
