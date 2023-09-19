@@ -63,6 +63,7 @@ jobs:
           sudo apt-get install flex
           sudo apt install libfl-dev
           sudo apt install libasio-dev
+          sudo apt install g++-13
 
       - name: test versions
         if: matrix.os == 'ubuntu-latest'
