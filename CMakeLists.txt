@@ -71,7 +71,7 @@ target_link_libraries(DBEngine PRIVATE common)
 
 # SpdLog
 
-find_package(spdlog QUIET REQUIRED)
+find_package(spdlog QUIET)
 
 if(spdlog_FOUND)
   message(STATUS "Found spdlog")

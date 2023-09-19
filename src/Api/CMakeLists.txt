@@ -3,7 +3,7 @@ add_library(Api Api.cpp)
 target_include_directories(Api PUBLIC ${CMAKE_SOURCE_DIR}/include/Api)
 
 # Api package
-find_package(Crow QUIET REQUIRED)
+find_package(Crow QUIET)
 
 if(crow_FOUND)
   message(STATUS "Found Crow")
