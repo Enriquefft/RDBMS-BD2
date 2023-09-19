@@ -29,6 +29,13 @@ HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
   }
 }
 
+HeapFile::TableMetadata::TableMetadata(
+    std::vector<std::string> _attribute_names,
+    std::vector<Type> _attribute_types, std::string _primary_key)
+    : attribute_names(std::move(_attribute_names)),
+      attribute_types(std::move(_attribute_types)),
+      primary_key(std::move(_primary_key)) {}
+
 auto HeapFile::load() -> std::vector<Record> {
 
   m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);

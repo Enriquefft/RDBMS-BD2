@@ -29,10 +29,11 @@ DB_ENGINE::DBEngine::DBEngine() {
   // Load Indexes
 }
 
-auto DBEngine::create_table(std::string table_name,
+auto DBEngine::create_table(const std::string &table_name,
                             const std::string &primary_key,
-                            std::vector<Type> types,
-                            std::vector<std::string> attribute_names) -> bool {
+                            const std::vector<Type> &types,
+                            const std::vector<std::string> &attribute_names)
+    -> bool {
 
   // Check if table already exists
   std::string table_path = TABLES_PATH + table_name;
@@ -46,8 +47,7 @@ auto DBEngine::create_table(std::string table_name,
 
   create_directory(table_path);
 
-  HeapFile heap_file(table_name, std::move(types), std::move(attribute_names),
-                     primary_key);
+  HeapFile heap_file(table_name, types, attribute_names, primary_key);
 
   m_tables_raw.insert({table_name, std::move(heap_file)});
 

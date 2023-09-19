@@ -14,7 +14,7 @@ class HeapFile {
 public:
   using pos_type = std::streampos;
 
-  HeapFile() = default;
+  HeapFile() = delete;
   explicit HeapFile(std::string table_name, std::vector<Type> types,
                     std::vector<std::string> attribute_names,
                     std::string primary_key);
@@ -55,6 +55,9 @@ private:
     std::vector<Type> attribute_types;
     std::string primary_key;
     pos_type first_deleted{};
+
+    TableMetadata(std::vector<std::string> _attribute_names,
+                  std::vector<Type> _attribute_types, std::string _primary_key);
 
     [[nodiscard]] auto
     get_attribute_idx(const std::string &attribute_name) const -> uint8_t;

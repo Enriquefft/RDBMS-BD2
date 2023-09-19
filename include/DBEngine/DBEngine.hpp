@@ -41,9 +41,10 @@ public:
   /// @param types The types of the attributes.
   /// @param attribute_names The names of the attributes.
   /// @return Boolean value indicating succesfull creation
-  auto create_table(std::string table_name, const std::string &primary_key,
-                    std::vector<Type> types,
-                    std::vector<std::string> attribute_names) -> bool;
+  auto create_table(const std::string &table_name,
+                    const std::string &primary_key,
+                    const std::vector<Type> &types,
+                    const std::vector<std::string> &attribute_names) -> bool;
 
   /// @brief get a list of all the tables in the database.
   /// @return A vector of strings containing the names of all the tables.
