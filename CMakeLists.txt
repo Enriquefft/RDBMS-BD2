@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.16)
 
 project(
   RDBMS
@@ -64,6 +64,12 @@ target_compile_options(
 target_link_options(
   common INTERFACE
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize=address,undefined>)
+
+
+#Threads why??
+set(THREADS_HAVE_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(DBEngine PUBLIC Threads::Threads)
 
 # config
 target_link_libraries(RDBMS PRIVATE common)
