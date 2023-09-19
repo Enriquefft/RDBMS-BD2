@@ -74,9 +74,11 @@ target_link_libraries(DBEngine PRIVATE common)
 find_package(spdlog QUIET REQUIRED)
 
 if(spdlog_FOUND)
+  message(STATUS "Found spdlog")
   target_link_libraries(DBEngine PUBLIC spdlog::spdlog)
 else()
   # Only use this if spdlog is not installed on your system
+  message(STATUS "SpdLog not found, using bundled version")
   target_include_directories(DBEngine SYSTEM
                              PUBLIC ${CMAKE_SOURCE_DIR}/libs/SpdLog/)
 endif()
