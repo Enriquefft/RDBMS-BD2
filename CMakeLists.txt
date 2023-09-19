@@ -58,7 +58,8 @@ target_compile_options(
             $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-fsanitize-address-use-after-scope>
             $<$<CONFIG:RELEASE>:-O0>
             $<$<CONFIG:DEBUG>:-O0>
-            $<$<CONFIG:DEBUG>:-ggdb3>)
+            $<$<CONFIG:DEBUG>:-ggdb3>
+            $<$<CXX_COMPILER_ID:Clang>:-fexperimental-library>)
 
 target_link_options(
   common INTERFACE
