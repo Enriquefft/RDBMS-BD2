@@ -15,6 +15,7 @@
 
 namespace DB_ENGINE {
 
+/// @brief Enum representing the available Comparison operators
 enum Comp : uint8_t { EQUAL, GE, LE, G, L };
 
 /**
@@ -27,12 +28,19 @@ enum Comp : uint8_t { EQUAL, GE, LE, G, L };
  */
 class DBEngine {
 public:
-  enum class Index_t { AVL, HASH, ISAM };
+  /// @brief Enum representing the available indexes
+  enum class Index_t : uint8_t { AVL, HASH, ISAM };
 
   /// @brief The constructor of the class DBEngine.
   /// @details Constructs the class and all the necesary filepaths
   DBEngine();
 
+  /// @brief Create a table with the given name, pk and attributes.
+  /// @param table_name The name of the table to create.
+  /// @param primary_key The name of the primary key.
+  /// @param types The types of the attributes.
+  /// @param attribute_names The names of the attributes.
+  /// @return Boolean value indicating succesfull creation
   auto create_table(std::string table_name, const std::string &primary_key,
                     std::vector<Type> types,
                     std::vector<std::string> attribute_names) -> bool;
@@ -76,25 +84,56 @@ public:
   /// @return True if the value was removed, false otherwise.
   auto remove(const std::string &table_name, const Attribute &key) -> bool;
 
+  /// @brief Query if a table exists.
+  /// @param table_name The name of the table to query.
+  /// @return True if the table exists, false otherwise.
   auto is_table(const std::string &table_name) const -> bool;
+
+  /// @brief Get the attributes of a table.
+  /// @param table_name The name of the table to get the attributes from.
+  /// @return A vector of strings containing the names of the attributes.
   auto get_table_attributes(const std::string &table_name) const
       -> std::vector<std::string>;
 
+  /// @brief Get the Indexes asociated with a table.
+  /// @param table_name The name of the table to get the indexes from.
+  /// @return Vector of Index_t representing the indexes asociated with the
+  /// table.
   auto get_indexes(const std::string &table_name) const -> std::vector<Index_t>;
+
+  /// @brief Get the Indexes names asociated with a table.
+  /// @param table_name The name of the table to get the indexes from.
+  /// @return Vector of strings representing the attributes with indexes in the
+  /// table.
   auto get_indexes_names(const std::string &table_name) const
       -> std::vector<std::string>;
 
+  /// @brief Get a lambda function that compares a record's attribute with a
+  /// value.
+  /// @param table_name The name of the table to get the lambda from.
+  /// @param cmp The comparison operator.
+  /// @param column_name The name of the attribute to compare.
+  /// @param string_to_compare The value to compare with.
+  /// @return A predicate which operates on a record.
   auto get_comparator(const std::string &table_name, Comp cmp,
                       const std::string &column_name,
                       const std::string &string_to_compare) const
       -> std::function<bool(const Record &record)>;
+
+  /// @brief Drop a table from the database.
+  /// @param table_name The name of the table to drop.
+  /// @details This function will delete the table, and all the indexes by
+  /// removing the corresponding directory entries.
   static void drop_table(const std::string &table_name);
 
 private:
+  /// @brief Generate the directories necesary for the database.
   static void generate_directories();
 
-  // Extracted from:
-  // https://www.geeksforgeeks.org/how-to-create-an-unordered_map-of-pairs-in-c/
+  /// @brief Hashing struct which allows to have an unordered_map with std::pair
+  /// as key
+  /// @details Extracted from:
+  /// https://www.geeksforgeeks.org/how-to-create-an-unordered_map-of-pairs-in-c/
   struct HashPair {
     auto operator()(const Index &index) const -> size_t {
       auto hash1 = std::hash<std::string>{}(index.table);
@@ -113,18 +152,11 @@ private:
 
   TableMap<HeapFile> m_tables_raw;
   IndexMap<AvlIndexContainer> m_avl_indexes;
-  IndexMap<ISAMIndex> m_isam_indexes;
-  IndexMap<SequentialIndex> m_sequential_indexes;
+  IndexMap<IsamIndexContainer> m_isam_indexes;
+  IndexMap<SequentialIndexContainer> m_sequential_indexes;
   std::unordered_map<std::string, std::vector<Index_t>> m_index_map;
 
   static auto stob(std::string str) -> bool;
-
-  // template <typename Func>
-  // void cast_and_execute(Type::types type, const std::string &attribute_value,
-  //                       Func func);
-  // template <typename Func>
-  // void cast_and_execute(Type::types type, const std::string &att1,
-  //                       const std::string &att2, Func func);
 };
 
 } // namespace DB_ENGINE

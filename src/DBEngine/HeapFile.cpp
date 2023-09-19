@@ -62,6 +62,19 @@ void HeapFile::update_first_deleted(pos_type pos) {
   write_metadata();
 }
 
+auto HeapFile::filter(const Record & /*record*/,
+                      const std::vector<std::string> & /*selected_attributes*/)
+    const -> std::string {
+
+  return {};
+}
+
+auto HeapFile::filter(const std::vector<Record> & /*record*/,
+                      const std::vector<std::string> & /*selected_attributes*/)
+    const -> std::vector<std::string> {
+  return {};
+}
+
 void HeapFile::write_metadata() {
   std::ofstream metadata(m_table_path + METADATA_FILE, std::ios::binary);
   if (!metadata.write(reinterpret_cast<const char *>(&m_metadata),

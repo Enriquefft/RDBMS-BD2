@@ -3,77 +3,104 @@
 
 #include <spdlog/spdlog.h>
 #include <string>
+#include <type_traits>
+
+template <typename T>
+// T must be int, float, string or bool
+concept ValidType = std::same_as<T, int> || std::same_as<T, float> ||
+                    std::same_as<T, std::string> || std::same_as<T, bool>;
+
+template <typename T> auto str_cast(const T &value) -> std::string {
+  return std::to_string(value);
+}
+template <> inline auto str_cast(const std::string &value) -> std::string {
+  return value;
+}
 
 template <typename T> class AVLIndex {
 public:
-  [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
-  [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
+  [[nodiscard]] auto get_attribute_name() const -> std::string { return {}; }
+  [[nodiscard]] auto get_table_name() const -> std::string { return {}; }
 
   [[nodiscard]] auto range_search(T begin, T end) const
       -> std::vector<std::streampos> {
-    spdlog::info("Searching range [{}, {}] in AVL index", begin, end);
+    spdlog::info("Searching range [{}, {}] in AVL index", str_cast(begin),
+                 str_cast(end));
     return {};
   }
 
   [[nodiscard]] auto remove(T key) const -> std::streampos {
-    spdlog::info("Removing key {} from AVL index", key);
+    spdlog::info("Removing key {} from AVL index", str_cast(key));
     return {};
   }
 
   [[nodiscard]] auto search(T key) const -> std::streampos {
-    spdlog::info("Searching key {} in AVL index", key);
+    spdlog::info("Searching key {} in AVL index", str_cast(key));
 
     return {};
   }
 
   [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
-    spdlog::info("Adding key {} to AVL index with pos {}", key, pos);
+    spdlog::info("Adding key {} to AVL index with pos {}", str_cast(key),
+                 str_cast(pos));
     return {};
   }
 };
 
 template <typename T> class IsamIndex {
 public:
-  [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
-  [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
-  auto range_search(T begin, T end) const -> std::vector<std::streampos> {
-    spdlog::info("Searching range [{}, {}] in ISAM index", begin, end);
+  [[nodiscard]] auto get_attribute_name() const -> std::string { return {}; }
+  [[nodiscard]] auto get_table_name() const -> std::string { return {}; }
+  [[nodiscard]] auto range_search(T begin, T end) const
+      -> std::vector<std::streampos> {
+    spdlog::info("Searching range [{}, {}] in ISAM index", str_cast(begin),
+                 str_cast(end));
     return {};
   }
-  auto remove(T key) const -> std::streampos {
-    spdlog::info("Removing key {} from ISAM index", key);
+  [[nodiscard]] auto remove(T key) const -> std::streampos {
+    spdlog::info("Removing key {} from ISAM index", str_cast(key));
     return {};
   }
-  auto search(T key) const -> std::streampos {
-    spdlog::info("Searching key {} in ISAM index", key);
+  [[nodiscard]] auto search(T key) const -> std::streampos {
+    spdlog::info("Searching key {} in ISAM index", str_cast(key));
     return {};
   }
-  auto add(T key, std::streampos pos) const -> bool {
-    spdlog::info("Adding key {} to ISAM index with pos {}", key, pos);
+  [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
+    spdlog::info("Adding key {} to ISAM index with pos {}", str_cast(key),
+                 str_cast(pos));
+
     return {};
   }
 };
 
 template <typename T> class SequentialIndex {
 public:
-  [[nodiscard]] static auto get_attribute_name() -> std::string { return {}; }
-  [[nodiscard]] static auto get_table_name() -> std::string { return {}; }
+  [[nodiscard]] auto get_attribute_name() const -> std::string {
+    spdlog::info("Getting attribute name from sequential index");
+    return {};
+  }
+  [[nodiscard]] auto get_table_name() const -> std::string {
+    spdlog::info("Getting table name from sequential index");
+    return {};
+  }
   [[nodiscard]] auto range_search(T begin, T end) const
       -> std::vector<std::streampos> {
-    spdlog::info("Searching range [{}, {}] in sequential index", begin, end);
+    spdlog::info("Searching range [{}, {}] in sequential index",
+                 str_cast(begin), str_cast(end));
     return {};
   }
   [[nodiscard]] auto remove(T key) const -> std::streampos {
-    spdlog::info("Removing key {} from sequential index", key);
+    spdlog::info("Removing key {} from sequential index", str_cast(key));
     return {};
   }
   [[nodiscard]] auto search(T key) const -> std::streampos {
-    spdlog::info("Searching key {} in sequential index", key);
+    spdlog::info("Searching key {} in sequential index", str_cast(key));
     return {};
   }
 
   [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
-    spdlog::info("Adding key {} to sequential index with pos {}", key, pos);
+    spdlog::info("Adding key {} to sequential index with pos {}", str_cast(key),
+                 str_cast(pos));
     return {};
   }
 };
@@ -83,7 +110,26 @@ class AvlIndexContainer {
                AVLIndex<bool>>
       m_idx;
 };
-class SequentialIndexContainer {
+struct SequentialIndexContainer {
+
+  template <ValidType T>
+  explicit SequentialIndexContainer(SequentialIndex<T> &idx)
+      : m_idx{std::move(idx)} {}
+
+  template <ValidType T>
+  auto range_search(T begin, T end) const -> std::vector<std::streampos>;
+
+  [[nodiscard]] auto get_attribute_name() const -> std::string;
+  [[nodiscard]] auto get_table_name() const -> std::string;
+  template <ValidType T>
+  [[nodiscard]] auto remove(T key) const -> std::streampos;
+
+  template <ValidType T>
+  [[nodiscard]] auto search(T key) const -> std::streampos;
+
+  template <ValidType T>
+  [[nodiscard]] auto add(T key, std::streampos pos) const -> bool;
+
   std::variant<SequentialIndex<int>, SequentialIndex<float>,
                SequentialIndex<std::string>, SequentialIndex<bool>>
       m_idx;
@@ -94,5 +140,45 @@ class IsamIndexContainer {
                IsamIndex<bool>>
       m_idx;
 };
+
+// Explicit template instantiation declaration
+extern template auto SequentialIndexContainer::search(int) const
+    -> std::streampos;
+extern template auto SequentialIndexContainer::search(float) const
+    -> std::streampos;
+extern template auto SequentialIndexContainer::search(bool) const
+    -> std::streampos;
+extern template auto
+    SequentialIndexContainer::search<std::string>(std::string) const
+    -> std::streampos;
+
+extern template auto SequentialIndexContainer::add(int, std::streampos) const
+    -> bool;
+extern template auto SequentialIndexContainer::add(float, std::streampos) const
+    -> bool;
+extern template auto SequentialIndexContainer::add(bool, std::streampos) const
+    -> bool;
+extern template auto
+    SequentialIndexContainer::add<std::string>(std::string,
+                                               std::streampos) const -> bool;
+
+extern template auto SequentialIndexContainer::remove(int) const
+    -> std::streampos;
+extern template auto SequentialIndexContainer::remove(float) const
+    -> std::streampos;
+extern template auto SequentialIndexContainer::remove(bool) const
+    -> std::streampos;
+extern template auto
+    SequentialIndexContainer::remove<std::string>(std::string) const
+    -> std::streampos;
+
+extern template auto SequentialIndexContainer::range_search(int, int) const
+    -> std::vector<std::streampos>;
+extern template auto SequentialIndexContainer::range_search(float, float) const
+    -> std::vector<std::streampos>;
+extern template auto SequentialIndexContainer::range_search(bool, bool) const
+    -> std::vector<std::streampos>;
+extern template auto SequentialIndexContainer::range_search<std::string>(
+    std::string, std::string) const -> std::vector<std::streampos>;
 
 #endif // !INDEX_HPP

@@ -49,13 +49,37 @@ auto DBEngine::create_table(std::string table_name,
   HeapFile heap_file(table_name, std::move(types), std::move(attribute_names),
                      primary_key);
 
-  std::pair<const std::string, HeapFile> val{table_name, std::move(heap_file)};
+  m_tables_raw.insert({table_name, std::move(heap_file)});
 
-  m_tables_raw.insert(std::move(val));
+  auto key_type = m_tables_raw.at(table_name).get_type(primary_key);
 
-  SequentialIndex sequential_index;
+  switch (key_type.type) {
+  case Type::BOOL:
+    SequentialIndex<bool> sequential_index_bool;
+    m_sequential_indexes.insert(
+        {{table_name, primary_key},
+         SequentialIndexContainer(sequential_index_bool)});
+    break;
+  case Type::INT:
+    SequentialIndex<int> sequential_index_int;
+    m_sequential_indexes.insert(
+        {{table_name, primary_key},
+         SequentialIndexContainer(sequential_index_int)});
+    break;
+  case Type::FLOAT:
+    SequentialIndex<float> sequential_index_float;
+    m_sequential_indexes.insert(
+        {{table_name, primary_key},
+         SequentialIndexContainer(sequential_index_float)});
+    break;
+  case Type::VARCHAR:
+    SequentialIndex<std::string> sequential_index_str;
+    m_sequential_indexes.insert(
+        {{table_name, primary_key},
+         SequentialIndexContainer(sequential_index_str)});
+    break;
+  }
 
-  m_sequential_indexes.insert({{table_name, primary_key}, sequential_index});
   return true;
 }
 

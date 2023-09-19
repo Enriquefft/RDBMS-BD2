@@ -29,16 +29,12 @@ public:
 
   auto get_key(const Record &record) const -> std::pair<Type, Attribute>;
 
-  auto filter(const Record & /*record*/,
-              const std::vector<std::string> & /*selected_attributes*/) const
-      -> std::string {
-    return {};
-  }
-  auto filter(const std::vector<Record> & /*record*/,
-              const std::vector<std::string> & /*selected_attributes*/) const
-      -> std::vector<std::string> {
-    return {};
-  }
+  auto filter(const Record &record,
+              const std::vector<std::string> &selected_attributes) const
+      -> std::string;
+  auto filter(const std::vector<Record> &record,
+              const std::vector<std::string> &selected_attributes) const
+      -> std::vector<std::string>;
 
   [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string>;
   [[nodiscard]] auto get_index_names() const -> std::vector<std::string>;
