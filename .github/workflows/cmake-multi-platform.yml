@@ -23,26 +23,26 @@ jobs:
       #
       # To add more build types (Release, Debug, RelWithDebInfo, etc.) customize the build_type list.
       matrix:
-        os: [ubuntu-latest] #, windows-latest]
+        os: [ubuntu-latest, windows-latest]
         build_type: [Release]
-        c_compiler: [gcc-13++, clang] #, cl]
+        c_compiler: [gcc, clang, cl]
         include:
-          # - os: windows-latest
-          #   c_compiler: cl
-          #   cpp_compiler: cl
+          - os: windows-latest
+            c_compiler: cl
+            cpp_compiler: cl
           - os: ubuntu-latest
-            c_compiler: gcc-13++
-            cpp_compiler: gcc-13++
+            c_compiler: gcc
+            cpp_compiler: g++
           - os: ubuntu-latest
             c_compiler: clang
-            cpp_compiler: clang
-        # exclude:
-        # - os: windows-latest
-        #   c_compiler: gcc
-        # - os: windows-latest
-        #   c_compiler: clang
-        # - os: ubuntu-latest
-        #   c_compiler: cl
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest
+            c_compiler: cl
 
     steps:
       - uses: actions/checkout@v3
@@ -64,12 +64,9 @@ jobs:
           sudo apt install libfl-dev
           sudo apt install libasio-dev
 
-      # - name: Configure GCC-13
-      #   if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'gcc'
-      #   run: export CXX=gcc-13++
-
-      - name: testgcc
-        run: ${{matrix.cpp_compiler}} --version && ${{matrix.c_compiler}} --version
+      - name: test versions
+        if: matrix.os == 'ubuntu-latest'
+        run: ${{matrix.cpp_compiler}} --version
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
