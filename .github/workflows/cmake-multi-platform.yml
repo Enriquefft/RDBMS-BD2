@@ -9,6 +9,8 @@ on:
     branches: ["main"]
 env:
   BUILD_TYPE: Release
+  CXX: g++-13
+  CC: gcc-13
 
 jobs:
   build:
