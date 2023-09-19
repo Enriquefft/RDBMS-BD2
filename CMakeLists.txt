@@ -70,10 +70,8 @@ target_link_libraries(Api PRIVATE common)
 target_link_libraries(DBEngine PRIVATE common)
 
 # SpdLog
-target_link_libraries(DBEngine PUBLIC spdlog::spdlog)
-if(NOT TARGET spdlog) # Stand-alone build
-  find_package(spdlog REQUIRED)
-endif()
+target_include_directories(DBEngine SYSTEM
+                           PUBLIC ${CMAKE_SOURCE_DIR}/libs/SpdLog/)
 
 # Ctest
 include(FetchContent)
