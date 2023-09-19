@@ -5,7 +5,7 @@ target_include_directories(Api PUBLIC ${CMAKE_SOURCE_DIR}/include/Api)
 # Api package
 find_package(Crow QUIET REQUIRED)
 
-if(Crow_FOUND)
+if(crow_FOUND)
   message(STATUS "Found Crow")
   target_link_libraries(Api PRIVATE Crow::Crow)
 else()
