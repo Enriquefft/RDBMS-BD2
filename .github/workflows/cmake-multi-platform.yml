@@ -56,14 +56,23 @@ jobs:
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-      - name: Install flex (Ubuntu)
+      - name: Install dependencies (Ubuntu)
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install flex
           sudo apt install libfl-dev
           sudo apt install libasio-dev
+
+      - name: Install gcc-13
+        if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'gcc'
           sudo apt install g++-13
+      - name: Install clang-16
+        if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'clang'
+        run: |
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 16
 
       - name: test versions
         if: matrix.os == 'ubuntu-latest'
