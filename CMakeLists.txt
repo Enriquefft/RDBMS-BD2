@@ -35,7 +35,7 @@ target_compile_options(
             $<$<CXX_COMPILER_ID:MSVC>:/W4
             /WX>
             $<$<CXX_COMPILER_ID:Clang>:-Weverything>
-            $<$<AND:CONFIG:DEBUG,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-Werror>
+            $<$<AND:$<CONFIG:DEBUG>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-Werror>
             $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:
             -Wall
             -Wextra
