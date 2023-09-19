@@ -63,6 +63,9 @@ jobs:
           sudo apt-get install flex
           sudo apt install libfl-dev
           sudo apt install libasio-dev
+      - name: Configure GCC-13
+        if: matrix.os == 'ubuntu-latest' && matrix.c_compiler == 'gcc'
+        run: export CXX=gcc-13++
 
       - name: Configure CMake
         # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
