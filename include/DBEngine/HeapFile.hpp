@@ -21,13 +21,18 @@ public:
 
   auto load() -> std::vector<Record>;
   auto add(const Record &record) -> pos_type;
+  auto next_pos() const -> pos_type;
+
   auto read(const pos_type &pos) -> Record;
   auto remove(const pos_type &pos) -> bool;
 
   auto get_type(const std::string &attribute_name) const -> Type;
   auto get_type(const Attribute &attribute) const -> Type;
+  auto get_types() const -> std::vector<Type>;
 
   auto get_key(const Record &record) const -> std::pair<Type, Attribute>;
+  auto get_key_name() const -> std::pair<Type, std::string>;
+  auto get_key_idx() const -> uint8_t;
 
   auto filter(const Record &record,
               const std::vector<std::string> &selected_attributes) const
@@ -42,6 +47,7 @@ public:
       -> uint8_t {
     return m_metadata.get_attribute_idx(attribute_name);
   }
+  [[nodiscard]] auto get_record_size() const -> uint8_t;
 
 private:
   using enum Record::Status;

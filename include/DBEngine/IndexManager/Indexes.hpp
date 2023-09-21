@@ -18,7 +18,7 @@ template <> inline auto str_cast(const std::string &value) -> std::string {
   return value;
 }
 
-template <typename T> class AVLIndex {
+template <typename T> class AvlIndex {
 public:
   [[nodiscard]] auto get_attribute_name() const -> std::string { return {}; }
   [[nodiscard]] auto get_table_name() const -> std::string { return {}; }
@@ -44,6 +44,12 @@ public:
   [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
     spdlog::info("Adding key {} to AVL index with pos {}", str_cast(key),
                  str_cast(pos));
+    return {};
+  }
+  [[nodiscard]] auto
+  bulk_insert(const std::vector<std::pair<T, std::streampos>> &elements) const
+      -> std::vector<bool> {
+    spdlog::info("Inserting {} elements to AVL index", elements.size());
     return {};
   }
 };
@@ -72,10 +78,18 @@ public:
 
     return {};
   }
+  [[nodiscard]] auto
+  bulk_insert(const std::vector<std::pair<T, std::streampos>> &elements) const
+      -> std::vector<bool> {
+    spdlog::info("Inserting {} elements to ISAM index", elements.size());
+    return {};
+  }
 };
 
 template <typename T> class SequentialIndex {
 public:
+  using MIN_BULK_INSERT_SIZE = std::integral_constant<size_t, 1000>;
+
   [[nodiscard]] auto get_attribute_name() const -> std::string {
     spdlog::info("Getting attribute name from sequential index");
     return {};
@@ -104,13 +118,56 @@ public:
                  str_cast(pos));
     return {};
   }
+
+  [[nodiscard]] auto
+  bulk_insert(const std::vector<std::pair<T, std::streampos>> &elements) const
+      -> std::vector<bool> {
+    spdlog::info("Inserting {} elements to sequential index", elements.size());
+    return {};
+  }
 };
 
-class AvlIndexContainer {
-  std::variant<AVLIndex<int>, AVLIndex<float>, AVLIndex<std::string>,
-               AVLIndex<bool>>
-      m_idx;
+struct AvlIndexContainer {
+  template <ValidType T>
+  explicit AvlIndexContainer(SequentialIndex<T> &idx) : m_idx{std::move(idx)} {}
+
+  template <ValidType T>
+  [[nodiscard]] auto range_search(T begin, T end) const
+      -> std::vector<std::streampos> {
+    return std::get<AvlIndex<T>>(m_idx).range_search(begin, end);
+  }
+
+  [[nodiscard]] auto get_attribute_name() const -> std::string {
+    return std::visit(
+        [](const auto &index) { return index.get_attribute_name(); }, m_idx);
+  }
+  [[nodiscard]] auto get_table_name() const -> std::string {
+    return std::visit([](const auto &index) { return index.get_table_name(); },
+                      m_idx);
+  }
+  template <ValidType T>
+  [[nodiscard]] auto remove(T key) const -> std::streampos {
+    return std::get<AvlIndex<T>>(m_idx).remove(key);
+  }
+
+  template <ValidType T>
+  [[nodiscard]] auto search(T key) const -> std::streampos {
+    return std::get<AvlIndex<T>>(m_idx).search(key);
+  }
+
+  template <ValidType T>
+  [[nodiscard]] auto add(T key, std::streampos pos) -> bool {
+    return std::get<AvlIndex<T>>(m_idx).add(key, pos);
+  }
+
+  template <ValidType T>
+  auto bulk_insert(const std::vector<std::pair<T, std::streampos>> &elements)
+      -> std::vector<bool> {
+    return std::get<AvlIndex<T>>(m_idx).bulk_insert(elements);
+  }
+  std::variant<AvlIndex<int>, AvlIndex<float>, AvlIndex<std::string>> m_idx;
 };
+
 struct SequentialIndexContainer {
 
   template <ValidType T>
@@ -118,68 +175,84 @@ struct SequentialIndexContainer {
       : m_idx{std::move(idx)} {}
 
   template <ValidType T>
-  auto range_search(T begin, T end) const -> std::vector<std::streampos>;
+  [[nodiscard]] auto range_search(T begin, T end) const
+      -> std::vector<std::streampos> {
+    return std::get<SequentialIndex<T>>(m_idx).range_search(begin, end);
+  }
 
-  [[nodiscard]] auto get_attribute_name() const -> std::string;
-  [[nodiscard]] auto get_table_name() const -> std::string;
+  [[nodiscard]] auto get_attribute_name() const -> std::string {
+    return std::visit(
+        [](const auto &index) { return index.get_attribute_name(); }, m_idx);
+  }
+  [[nodiscard]] auto get_table_name() const -> std::string {
+    return std::visit([](const auto &index) { return index.get_table_name(); },
+                      m_idx);
+  }
   template <ValidType T>
-  [[nodiscard]] auto remove(T key) const -> std::streampos;
+  [[nodiscard]] auto remove(T key) const -> std::streampos {
+    return std::get<SequentialIndex<T>>(m_idx).remove(key);
+  }
 
   template <ValidType T>
-  [[nodiscard]] auto search(T key) const -> std::streampos;
+  [[nodiscard]] auto search(T key) const -> std::streampos {
+    return std::get<SequentialIndex<T>>(m_idx).search(key);
+  }
 
   template <ValidType T>
-  [[nodiscard]] auto add(T key, std::streampos pos) const -> bool;
+  [[nodiscard]] auto add(T key, std::streampos pos) -> bool {
+    return std::get<SequentialIndex<T>>(m_idx).add(key, pos);
+  }
+
+  template <ValidType T>
+  auto bulk_insert(const std::vector<std::pair<T, std::streampos>> &elements)
+      -> std::vector<bool> {
+    return std::get<SequentialIndex<T>>(m_idx).bulk_insert(elements);
+  }
 
   std::variant<SequentialIndex<int>, SequentialIndex<float>,
-               SequentialIndex<std::string>, SequentialIndex<bool>>
+               SequentialIndex<std::string>>
       m_idx;
 };
 
-class IsamIndexContainer {
-  std::variant<IsamIndex<int>, IsamIndex<float>, IsamIndex<std::string>,
-               IsamIndex<bool>>
-      m_idx;
+struct IsamIndexContainer {
+  template <ValidType T>
+  explicit IsamIndexContainer(IsamIndex<T> &idx) : m_idx{std::move(idx)} {}
+
+  template <ValidType T>
+  [[nodiscard]] auto range_search(T begin, T end) const
+      -> std::vector<std::streampos> {
+    return std::get<IsamIndex<T>>(m_idx).range_search(begin, end);
+  }
+
+  [[nodiscard]] auto get_attribute_name() const -> std::string {
+    return std::visit(
+        [](const auto &index) { return index.get_attribute_name(); }, m_idx);
+  }
+  [[nodiscard]] auto get_table_name() const -> std::string {
+    return std::visit([](const auto &index) { return index.get_table_name(); },
+                      m_idx);
+  }
+  template <ValidType T>
+  [[nodiscard]] auto remove(T key) const -> std::streampos {
+    return std::get<IsamIndex<T>>(m_idx).remove(key);
+  }
+
+  template <ValidType T>
+  [[nodiscard]] auto search(T key) const -> std::streampos {
+    return std::get<IsamIndex<T>>(m_idx).search(key);
+  }
+
+  template <ValidType T>
+  [[nodiscard]] auto add(T key, std::streampos pos) -> bool {
+    return std::get<IsamIndex<T>>(m_idx).add(key, pos);
+  }
+
+  template <ValidType T>
+  auto bulk_insert(const std::vector<std::pair<T, std::streampos>> &elements)
+      -> std::vector<bool> {
+    return std::get<IsamIndex<T>>(m_idx).bulk_insert(elements);
+  }
+  std::variant<IsamIndex<int>, IsamIndex<float>, IsamIndex<std::string>> m_idx;
 };
-
-// Explicit template instantiation declaration
-extern template auto SequentialIndexContainer::search(int) const
-    -> std::streampos;
-extern template auto SequentialIndexContainer::search(float) const
-    -> std::streampos;
-extern template auto SequentialIndexContainer::search(bool) const
-    -> std::streampos;
-extern template auto
-    SequentialIndexContainer::search<std::string>(std::string) const
-    -> std::streampos;
-
-extern template auto SequentialIndexContainer::add(int, std::streampos) const
-    -> bool;
-extern template auto SequentialIndexContainer::add(float, std::streampos) const
-    -> bool;
-extern template auto SequentialIndexContainer::add(bool, std::streampos) const
-    -> bool;
-extern template auto
-    SequentialIndexContainer::add<std::string>(std::string,
-                                               std::streampos) const -> bool;
-
-extern template auto SequentialIndexContainer::remove(int) const
-    -> std::streampos;
-extern template auto SequentialIndexContainer::remove(float) const
-    -> std::streampos;
-extern template auto SequentialIndexContainer::remove(bool) const
-    -> std::streampos;
-extern template auto
-    SequentialIndexContainer::remove<std::string>(std::string) const
-    -> std::streampos;
-
-extern template auto SequentialIndexContainer::range_search(int, int) const
-    -> std::vector<std::streampos>;
-extern template auto SequentialIndexContainer::range_search(float, float) const
-    -> std::vector<std::streampos>;
-extern template auto SequentialIndexContainer::range_search(bool, bool) const
-    -> std::vector<std::streampos>;
-extern template auto SequentialIndexContainer::range_search<std::string>(
-    std::string, std::string) const -> std::vector<std::streampos>;
 
 #endif // !INDEX_HPP

@@ -50,6 +50,8 @@ auto HeapFile::load() -> std::vector<Record> {
 
 auto HeapFile::add(const Record & /*record*/) -> pos_type { return {}; }
 
+auto HeapFile::next_pos() const -> pos_type { return {}; }
+
 auto HeapFile::read(const pos_type &pos) -> Record {
   m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
 
@@ -61,6 +63,7 @@ auto HeapFile::read(const pos_type &pos) -> Record {
 
   return record;
 }
+
 auto HeapFile::remove(const pos_type & /*pos*/) -> bool { return {}; }
 
 void HeapFile::update_first_deleted(pos_type pos) {
@@ -109,11 +112,11 @@ auto HeapFile::TableMetadata::get_attribute_idx(
 auto HeapFile::string_cast(const Type &type, const char *data) -> std::string {
 
   switch (type.type) {
-
   case Type::BOOL: {
     bool value = *reinterpret_cast<const bool *>(data);
     return value ? "true" : "false";
   }
+
   case Type::INT: {
     int int_value = *reinterpret_cast<const int *>(data);
     return std::to_string(int_value);
@@ -130,6 +133,8 @@ auto HeapFile::string_cast(const Type &type, const char *data) -> std::string {
   throw std::runtime_error("Invalid type");
 }
 
+auto HeapFile::get_record_size() const -> uint8_t { return C_RECORD_SIZE; }
+
 auto HeapFile::get_type(const std::string &attribute_name) const -> Type {
   auto attribute_idx = m_metadata.get_attribute_idx(attribute_name);
   return m_metadata.attribute_types.at(attribute_idx);
@@ -137,6 +142,9 @@ auto HeapFile::get_type(const std::string &attribute_name) const -> Type {
 
 auto HeapFile::get_type(const Attribute &attribute) const -> Type {
   return get_type(attribute.name);
+}
+auto HeapFile::get_types() const -> std::vector<Type> {
+  return m_metadata.attribute_types;
 }
 
 auto HeapFile::get_key(const Record &record) const
@@ -152,6 +160,16 @@ auto HeapFile::get_key(const Record &record) const
   Attribute key_attribute = {m_metadata.attribute_names.at(key_idx), key_value};
 
   return {key_type, key_attribute};
+}
+
+auto HeapFile::get_key_name() const -> std::pair<Type, std::string> {
+
+  auto key_idx = m_metadata.get_attribute_idx(m_metadata.primary_key);
+  auto key_type = m_metadata.attribute_types.at(key_idx);
+  return {key_type, m_metadata.attribute_names.at(key_idx)};
+}
+auto HeapFile::get_key_idx() const -> uint8_t {
+  return m_metadata.get_attribute_idx(m_metadata.primary_key);
 }
 
 auto HeapFile::get_attribute_names() const -> std::vector<std::string> {

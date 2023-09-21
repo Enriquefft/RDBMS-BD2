@@ -3,6 +3,7 @@
 
 // This file contins compile time constants and type definitions
 #include <limits>
+#include <spdlog/spdlog.h>
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
@@ -65,7 +66,7 @@ struct Type {
   }
   Type(const types &_type, const int &_size)
       : Type(_type, static_cast<size_type>(_size)) {}
-  std::string to_string() {
+  [[nodiscard]] auto to_string() const -> std::string {
     std::string str;
     switch (type) {
     case BOOL:
@@ -124,6 +125,8 @@ inline void cast_and_execute(Type::types type,
                              const std::string &attribute_value, Func func) {
   switch (type) {
   case Type::types::INT: {
+    int key_value = std::stoi(attribute_value);
+    func(key_value);
     break;
   }
   case Type::types::FLOAT: {
@@ -134,6 +137,32 @@ inline void cast_and_execute(Type::types type,
   case Type::types::BOOL: {
     bool key_value = stob(attribute_value);
     func(key_value);
+    break;
+  }
+  case Type::types::VARCHAR: {
+    func(attribute_value);
+    break;
+  }
+  }
+}
+
+template <typename Func>
+inline void key_cast_and_execute(Type::types type,
+                                 const std::string &attribute_value,
+                                 Func func) {
+  switch (type) {
+  case Type::types::INT: {
+    int key_value = std::stoi(attribute_value);
+    func(key_value);
+    break;
+  }
+  case Type::types::FLOAT: {
+    float key_value = std::stof(attribute_value);
+    func(key_value);
+    break;
+  }
+  case Type::types::BOOL: {
+    spdlog::error("Bool key is not supported");
     break;
   }
   case Type::types::VARCHAR: {
@@ -171,6 +200,34 @@ inline void cast_and_execute(Type::types type, const std::string &att1,
   }
   }
 }
+
+template <typename Func>
+inline void key_cast_and_execute(Type::types type, const std::string &att1,
+                                 const std::string &att2, Func func) {
+  switch (type) {
+  case Type::types::INT: {
+    int value_1 = std::stoi(att1);
+    int value_2 = std::stoi(att2);
+    func(value_1, value_2);
+    break;
+  }
+  case Type::types::FLOAT: {
+    float value_1 = std::stof(att1);
+    float value_2 = std::stof(att2);
+    func(value_1, value_2);
+    break;
+  }
+  case Type::types::BOOL: {
+    spdlog::error("Bool key is not supported");
+    break;
+  }
+  case Type::types::VARCHAR: {
+    func(att1, att2);
+    break;
+  }
+  }
+}
+
 } // namespace DB_ENGINE
 
 #endif // !RECORD_HPP

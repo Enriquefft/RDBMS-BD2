@@ -2,6 +2,7 @@
 #define DB_ENGINE_HPP
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <ios>
 #include <spdlog/spdlog.h>
@@ -79,6 +80,21 @@ public:
   /// @return True if the value was added, false otherwise.
   auto add(const std::string &table_name, const Record &value) -> bool;
 
+  /// @brief Insert values from a csv_file into a table.
+  /// @param table_name The name of the table to insert the values into.
+  /// @param file The path to the csv file.
+  /// @details Insert value from a csv file into the table, the csv header must
+  /// be valid according to the existing table. The records are inserted all
+  /// adjacent in O(n) time.
+  void csv_insert(const std::string &table_name,
+                  const std::filesystem::path &file);
+
+  /// @brief Create a table from the csv file.
+  /// @param file The path to the csv file.
+  /// @details Reads the csv file and creates a table with the name of the file.
+  /// The file must contain a valid header.
+  auto csv_insert(const std::filesystem::path &file) -> bool;
+
   /// @brief Remove a value from a table.
   /// @param table_name The name of the table to remove the value from.
   /// @param key The key of the value to remove.
@@ -148,7 +164,6 @@ private:
   };
 
   template <typename T> using IndexMap = std::unordered_map<Index, T, HashPair>;
-
   template <typename T> using TableMap = std::unordered_map<std::string, T>;
 
   TableMap<HeapFile> m_tables_raw;
