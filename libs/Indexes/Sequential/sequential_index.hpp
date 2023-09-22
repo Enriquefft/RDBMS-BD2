@@ -7,7 +7,7 @@
 #include "binary_search_response.hpp"
 
 template<typename KEY_TYPE = default_data_type>
-class SequentialIndex: public Index<KEY_TYPE> {
+class SequentialIndex: public Index::Index<KEY_TYPE> {
     std::string indexFilename;
     std::string auxFilename;
     /*
