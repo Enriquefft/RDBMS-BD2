@@ -5,7 +5,7 @@
 #include "../record.hpp"
 
 template<typename KEY_TYPE>
-class SequentialIndexRecord: public Record<KEY_TYPE> {
+class SequentialIndexRecord: public Index::Record<KEY_TYPE> {
     
 public:
     physical_pos current_pos;

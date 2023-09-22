@@ -1,10 +1,10 @@
 #ifndef AVL_INDEX_NODE_HPP
 #define AVL_INDEX_NODE_HPP
 
-// #include "../index.hpp"
+#include "../index.hpp"
 #include "record.hpp"
 
-template <typename KEY_TYPE> struct AVLIndexNode : public Record<KEY_TYPE> {
+template <typename KEY_TYPE> struct AVLIndexNode : public Index::Record<KEY_TYPE> {
 
   physical_pos current_pos{};
 

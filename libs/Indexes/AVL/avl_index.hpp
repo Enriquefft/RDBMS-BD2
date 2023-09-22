@@ -6,7 +6,7 @@
 #include "avl_index_node.hpp"
 
 template <typename KEY_TYPE = default_data_type>
-class AVLIndex : public Index<KEY_TYPE> {
+class AVLIndex : public Index::Index<KEY_TYPE> {
   AVLIndexHeader header;
   std::string indexFileName;
   std::fstream file;
