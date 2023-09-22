@@ -6,7 +6,7 @@
 #include <type_traits>
 #include <variant>
 
-#include "AVL/avl_index.hpp"
+#include "Sequential/sequential_index.hpp"
 
 template <typename T>
 // T must be int, float, string or bool
