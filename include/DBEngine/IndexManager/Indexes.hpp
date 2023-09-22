@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <variant>
 
+#include "AVL/avl_index.hpp"
+
 template <typename T>
 // T must be int, float, string or bool
 concept ValidType = std::same_as<T, int> || std::same_as<T, float> ||
