@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <variant>
 
+#include "Sequential/sequential_index.hpp"
+
 template <typename T>
 // T must be int, float, string or bool
 concept ValidType = std::same_as<T, int> || std::same_as<T, float> ||
@@ -75,7 +77,6 @@ public:
   [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
     spdlog::info("Adding key {} to ISAM index with pos {}", str_cast(key),
                  str_cast(pos));
-
     return {};
   }
   [[nodiscard]] auto

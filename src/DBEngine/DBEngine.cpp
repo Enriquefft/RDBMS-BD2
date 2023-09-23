@@ -58,26 +58,32 @@ auto DBEngine::create_table(const std::string &table_name,
   auto key_type = m_tables_raw.at(table_name).get_type(primary_key);
 
   switch (key_type.type) {
-  case Type::INT:
-    SequentialIndex<int> sequential_index_int;
+  case Type::INT: {
+    SequentialIndex<int> sequential_index_int(table_name, primary_key, true);
     m_sequential_indexes.insert(
         {{table_name, primary_key},
          SequentialIndexContainer(sequential_index_int)});
     break;
-  case Type::FLOAT:
-    SequentialIndex<float> sequential_index_float;
+  }
+  case Type::FLOAT: {
+    SequentialIndex<float> sequential_index_float(table_name, primary_key,
+                                                  true);
     m_sequential_indexes.insert(
         {{table_name, primary_key},
          SequentialIndexContainer(sequential_index_float)});
     break;
-  case Type::VARCHAR:
-    SequentialIndex<std::string> sequential_index_str;
+  }
+  case Type::VARCHAR: {
+    SequentialIndex<std::string> sequential_index_str(table_name, primary_key,
+                                                      true);
     m_sequential_indexes.insert(
         {{table_name, primary_key},
          SequentialIndexContainer(sequential_index_str)});
     break;
-  case Type::BOOL:
+  }
+  case Type::BOOL: {
     spdlog::error("Bool can't be indexed ");
+  }
   }
 
   return true;
@@ -100,16 +106,21 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
 
   HeapFile::pos_type pos = 0;
 
+  response_time time;
+
   auto key_type = m_tables_raw.at(table_name).get_type(key);
 
-  key_cast_and_execute(key_type.type, key.value,
-                       [this, &key, &pos](auto key_value) {
-                         for (const auto &idx : m_sequential_indexes) {
-                           if (idx.second.get_attribute_name() == key.name) {
-                             pos = idx.second.search(key_value);
-                           }
-                         }
-                       });
+  key_cast_and_execute(
+      key_type.type, key.value, [this, &key, &pos, &time](auto key_value) {
+        for (const auto &idx : m_sequential_indexes) {
+          if (idx.second.get_attribute_name() == key.name) {
+
+            auto search_response = idx.second.search(key_value);
+            pos = search_response.first;
+            time = search_response.second;
+          }
+        }
+      });
 
   Record record = m_tables_raw.at(table_name).read(pos);
 
@@ -131,15 +142,20 @@ auto DBEngine::range_search(const std::string &table_name,
   }
 
   std::vector<HeapFile::pos_type> positions;
+  response_time time;
 
   auto key_type = m_tables_raw.at(table_name).get_type(begin_key);
 
   key_cast_and_execute(
       key_type.type, begin_key.value, end_key.value,
-      [this, &positions, &begin_key](auto begin_key_value, auto end_key_value) {
+      [this, &positions, &begin_key, &time](auto begin_key_value,
+                                            auto end_key_value) {
         for (const auto &idx : m_sequential_indexes) {
           if (idx.second.get_attribute_name() == begin_key.name) {
-            positions = idx.second.range_search(begin_key_value, end_key_value);
+            auto idx_response =
+                idx.second.range_search(begin_key_value, end_key_value);
+            positions = idx_response.records;
+            time = idx_response.query_time;
           }
         }
       });
@@ -163,13 +179,17 @@ auto DBEngine::add(const std::string &table_name, const Record &value) -> bool {
   auto [type, key] = m_tables_raw.at(table_name).get_key(value);
 
   auto inserted_pos = m_tables_raw.at(table_name).next_pos();
+  response_time time;
 
   for (auto &idx : m_sequential_indexes) {
     if (idx.first.table == table_name && idx.first.attribute_name == key.name) {
-      key_cast_and_execute(type.type, key.value,
-                           [&idx, &inserted_pos, &inserted](auto key_val) {
-                             inserted = idx.second.add(key_val, inserted_pos);
-                           });
+      key_cast_and_execute(
+          type.type, key.value,
+          [&idx, &inserted_pos, &inserted, &time](auto key_val) {
+            auto add_response = idx.second.add(key_val, inserted_pos);
+            inserted = add_response.first;
+            time = add_response.second;
+          });
     }
   }
 
@@ -183,14 +203,17 @@ auto DBEngine::add(const std::string &table_name, const Record &value) -> bool {
 auto DBEngine::remove(const std::string &table_name, const Attribute &key)
     -> bool {
 
+  response_time time;
   HeapFile::pos_type raw_pos;
   for (const auto &idx : m_sequential_indexes) {
     if (idx.first.table == table_name) {
       auto type = m_tables_raw.at(table_name).get_type(key);
-      key_cast_and_execute(type.type, key.value,
-                           [&raw_pos, &idx](auto key_value) {
-                             raw_pos = idx.second.remove(key_value);
-                           });
+      key_cast_and_execute(
+          type.type, key.value, [&raw_pos, &idx, &time](auto key_value) {
+            auto remove_response = idx.second.remove(key_value);
+            raw_pos = remove_response.first;
+            time = remove_response.second;
+          });
     }
   }
   if (raw_pos == -1) {
@@ -399,8 +422,10 @@ void DBEngine::csv_insert(const std::string &table_name,
           if (curr_field > pk_init_size) {
             pk_insertion = std::jthread([&inserted_indexes, &table_name,
                                          &key_name, &pk_values, this]() {
-              inserted_indexes = m_sequential_indexes.at({table_name, key_name})
-                                     .bulk_insert<pk_type>(pk_values);
+              auto bulk_insert_response =
+                  m_sequential_indexes.at({table_name, key_name})
+                      .bulk_insert<pk_type>(pk_values);
+              inserted_indexes = bulk_insert_response.second;
             });
           }
         }
@@ -410,7 +435,8 @@ void DBEngine::csv_insert(const std::string &table_name,
     }
     pk_insertion.join();
     auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
-                              .bulk_insert<pk_type>(pk_values);
+                              .bulk_insert<pk_type>(pk_values)
+                              .second;
     inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
                             inserted_bools.end());
   });

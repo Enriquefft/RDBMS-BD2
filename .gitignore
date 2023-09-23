@@ -1,3 +1,6 @@
+**/build
+**/.cache
+
 /build
 /docs
 /.cache

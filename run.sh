@@ -1,1 +1,1 @@
-CXX=clang++ cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+  CXX=$1 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug

@@ -12,7 +12,7 @@
 
 #include "HeapFile.hpp"
 
-#include "IndexManager/Indexes.hpp"
+#include "IndexManager/IndexContainer.hpp"
 
 namespace DB_ENGINE {
 

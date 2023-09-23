@@ -1,14 +1,14 @@
 #ifndef LIBRARIES_HPP
 #define LIBRARIES_HPP
 
-#include <iostream>
-#include <string>
-#include <fstream>
-#include <cmath>
-#include <vector>
-#include <ctime>
-#include <chrono>
-#include <random>
 #include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <ctime>
+#include <fstream>
+#include <iostream>
+#include <random>
+#include <string>
+#include <vector>
 
-#endif //LIBRARIES_HPP
+#endif // LIBRARIES_HPP

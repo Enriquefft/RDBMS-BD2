@@ -3,7 +3,7 @@
 
 #include "libraries.hpp"
 
-using physical_pos = long long;
+using physical_pos = std::streampos;
 using file_pos = char;
 using default_data_type = int;
 
