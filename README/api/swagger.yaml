@@ -54,11 +54,6 @@ components:
       type: array
       items:
         type: object
-        required:
-          - key
-        properties:
-          key:
-            type: string
         additionalProperties: true
         description: Output of the executed query
     Time:
