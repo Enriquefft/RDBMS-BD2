@@ -186,7 +186,8 @@ template <typename KEY_TYPE> bool SequentialIndex<KEY_TYPE>::fileExists() {
 template <typename KEY_TYPE>
 template <typename FileType>
 BinarySearchResponse<KEY_TYPE>
-SequentialIndex<KEY_TYPE>::binarySearch(FileType &file, Data<KEY_TYPE> data) {
+SequentialIndex<KEY_TYPE>::binarySearch(FileType &file,
+                                        Data<KEY_TYPE> data) const {
   BinarySearchResponse<KEY_TYPE> bsr;
   std::streamoff header_offset = sizeof(SequentialIndexHeader);
   std::streamoff sequentialIndexSize = sizeof(SequentialIndexRecord<KEY_TYPE>);
@@ -395,7 +396,8 @@ void SequentialIndex<KEY_TYPE>::insertAux(
 
 template <typename KEY_TYPE>
 Response SequentialIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
-                                        physical_pos raw_pos, bool rebuild) {
+                                        physical_pos raw_pos,
+                                        bool rebuild) const {
   Response response;
   response.startTimer();
 

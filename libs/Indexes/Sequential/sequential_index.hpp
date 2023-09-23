@@ -35,9 +35,10 @@ class SequentialIndex : public Index::Index<KEY_TYPE> {
   void insertAfterRecord(FileType &file,
                          SequentialIndexRecord<KEY_TYPE> &sir_prev,
                          SequentialIndexRecord<KEY_TYPE> &sir,
-                         SequentialIndexHeader &sih, bool header);
+                         SequentialIndexHeader &sih, bool header) const;
 
-  Index::Response add(Data<KEY_TYPE> data, physical_pos raw_pos, bool rebuild);
+  Index::Response add(Data<KEY_TYPE> data, physical_pos raw_pos,
+                      bool rebuild) const;
   Index::Response erase(Data<KEY_TYPE> data, Index::Response &response);
 
   /*
@@ -45,7 +46,7 @@ class SequentialIndex : public Index::Index<KEY_TYPE> {
   */
   template <typename FileType = std::fstream>
   BinarySearchResponse<KEY_TYPE> binarySearch(FileType &file,
-                                              Data<KEY_TYPE> data);
+                                              Data<KEY_TYPE> data) const;
 
 public:
   using MIN_BULK_INSERT_SIZE = std::integral_constant<size_t, 0>;

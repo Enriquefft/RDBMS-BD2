@@ -35,7 +35,7 @@ protected:
   template <typename RecordType> void printFile(const std::string &file_name);
 
   template <typename FileType = std::fstream, typename HeaderType>
-  void writeHeader(FileType &file, HeaderType &header);
+  void writeHeader(FileType &file, HeaderType &header) const;
 
   template <typename FileType = std::fstream, typename HeaderType>
   void readHeader(FileType &file, HeaderType &header);
@@ -44,7 +44,7 @@ protected:
   void readRecord(FileType &file, RecordType &record);
 
   template <typename FileType = std::fstream, typename RecordType>
-  void writeRecord(FileType &file, RecordType &record);
+  void writeRecord(FileType &file, RecordType &record) const;
 
   template <typename FileType = std::fstream, typename RecordType>
   void moveReadRecord(FileType &file, physical_pos &pos, RecordType &record);

@@ -77,7 +77,6 @@ public:
   [[nodiscard]] auto add(T key, std::streampos pos) const -> bool {
     spdlog::info("Adding key {} to ISAM index with pos {}", str_cast(key),
                  str_cast(pos));
-
     return {};
   }
   [[nodiscard]] auto

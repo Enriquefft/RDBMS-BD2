@@ -135,7 +135,7 @@ void Index<KEY_TYPE>::printFile(const std::string &file_name) {
 
 template <typename KEY_TYPE>
 template <typename FileType, typename HeaderType>
-void Index<KEY_TYPE>::writeHeader(FileType &file, HeaderType &header) {
+void Index<KEY_TYPE>::writeHeader(FileType &file, HeaderType &header) const {
   try {
     file.seekp(0, std::ios::beg);
     file.write(reinterpret_cast<char *>(&header), sizeof(HeaderType));
@@ -167,7 +167,7 @@ void Index<KEY_TYPE>::readRecord(FileType &file, RecordType &record) {
 
 template <typename KEY_TYPE>
 template <typename FileType, typename RecordType>
-void Index<KEY_TYPE>::writeRecord(FileType &file, RecordType &record) {
+void Index<KEY_TYPE>::writeRecord(FileType &file, RecordType &record) const {
   try {
     file.write(reinterpret_cast<char *>(&record), sizeof(RecordType));
   } catch (...) {
