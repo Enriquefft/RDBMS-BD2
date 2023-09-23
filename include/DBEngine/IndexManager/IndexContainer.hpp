@@ -4,6 +4,7 @@
 // #include "AVL/avl_index.hpp"
 #include "IndexConcept.hpp"
 #include "Sequential/sequential_index.hpp"
+#include <spdlog/spdlog.h>
 
 template <template <typename> class IndexType>
   requires ValidIndex<IndexType>
@@ -52,6 +53,7 @@ struct IndexContainer {
   // &data)
   auto bulk_insert(std::vector<std::pair<T, std::streampos>> &elements)
       -> std::pair<Response, std::vector<bool>> {
+    spdlog::info("calling bulk_insert on idx");
     return std::get<IndexType<T>>(m_idx).bulk_insert(elements);
   }
 

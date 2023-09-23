@@ -134,6 +134,7 @@ struct RecordHash {
 };
 
 using query_time_t = std::unordered_map<std::string, std::chrono::milliseconds>;
+
 struct QueryResponse {
   std::vector<Record> records;
   query_time_t query_times;

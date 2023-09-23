@@ -246,8 +246,6 @@ struct IndexInsert {
 
   template <ValidType T>
   IndexInsert(const std::vector<T> &_values) : values(_values) {
-    spdlog::info("creating IndexInsert with {}",
-                 typeid(decltype(_values)).name());
     if (std::is_same_v<std::vector<int>, decltype(_values)>) {
       spdlog::info("creating IndexInsert with int");
     }
@@ -258,7 +256,7 @@ struct IndexInsert {
       std::get<std::vector<T>>(values).emplace_back(
           std::forward<Args>(args)...);
     } else {
-      spdlog::error("vector doesn't holds expected type");
+      spdlog::error("vector doesn't holds expected type in emplace");
     }
   }
   template <ValidType T> void reserve(const auto &reserve_size) {
@@ -333,26 +331,31 @@ static auto generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
   for (ulong idx = 0; const auto &idx_type : field_types) {
     switch (idx_type.type) {
     case DB_ENGINE::Type::INT: {
+      spdlog::info("inserting vec<int> into indexes at {}", idx);
+
       IndexInsert insert_vec((std::vector<int>()));
       inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<int>(min_record_count);
       break;
     }
     case DB_ENGINE::Type::FLOAT: {
+      spdlog::info("inserting vec<float> into indexes at {}", idx);
       IndexInsert insert_vec((std::vector<float>()));
       inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<float>(min_record_count);
       break;
     }
     case DB_ENGINE::Type::VARCHAR: {
+      spdlog::info("inserting vec<string> into indexes at {}", idx);
       IndexInsert insert_vec((std::vector<std::string>()));
       inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<std::string>(min_record_count);
       break;
     }
     case DB_ENGINE::Type::BOOL:
-      continue;
+      break;
     }
+    idx++;
   }
   return inserted_keys;
 }
@@ -361,14 +364,18 @@ void insert_field(const auto &field, const ulong &curr_field,
                   const std::vector<DB_ENGINE::Type> &field_types,
                   std::vector<IndexInsert> &inserted_keys) {
 
+  spdlog::info("Inserting field into {}", curr_field);
   switch (field_types.at(curr_field).type) {
   case DB_ENGINE::Type::INT: {
     auto field_val = std::string(field.begin(), field.end());
     spdlog::info("converting {} to int", field_val);
+    spdlog::info("emplacing int {}", curr_field);
+
     inserted_keys.at(curr_field)
         .template emplace_back<int>(std::stoi(field_val));
     break;
   }
+
   case DB_ENGINE::Type::FLOAT: {
 
     inserted_keys.at(curr_field)
@@ -382,7 +389,7 @@ void insert_field(const auto &field, const ulong &curr_field,
     break;
   }
   case DB_ENGINE::Type::BOOL:
-    spdlog::error("Bool can't be indexed at field insertion");
+    spdlog::info("Bool was not inserted");
     break;
   }
 }
@@ -424,7 +431,7 @@ void DBEngine::csv_insert(const std::string &table_name,
   spdlog::info("Engine csv_insert: {}, {}", table_name, csv_path.string());
 
   auto [key_type, key_name] = table_heap.get_key_name();
-  auto key_idx = table_heap.get_attribute_idx(key_name);
+  auto primary_key_idx = table_heap.get_attribute_idx(key_name);
 
   std::ifstream csv_stream(csv_path);
   spdlog::info("Started stream");
@@ -475,9 +482,12 @@ void DBEngine::csv_insert(const std::string &table_name,
       // Iterate fields
       for (ulong curr_field = 0; auto field : fields) {
 
+        spdlog::info("Iterating field: {}",
+                     std::string(field.begin(), field.end()));
         insert_field(field, curr_field, field_types, inserted_keys);
 
-        if (curr_field % key_idx == 0) {
+        // Division by 0 here
+        if (curr_field == primary_key_idx) {
           key_value = std::string(field.begin(), field.end());
           pk_values.emplace_back(std::make_pair(pk_value, pos_getter()));
 
@@ -497,13 +507,35 @@ void DBEngine::csv_insert(const std::string &table_name,
     }
 
     table_heap.bulk_insert(records);
+    spdlog::info("Inserted records into heap file");
 
-    pk_insertion.join();
-    auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
-                              .bulk_insert<pk_type>(pk_values)
-                              .second;
+    spdlog::info("is_joinable 3: {}", pk_insertion.joinable());
+
+    if (pk_insertion.joinable()) {
+      pk_insertion.join();
+    }
+    spdlog::info("Finished pk_insertion");
+
+    spdlog::info("Iterating pk_values");
+    for (const auto &elem : m_sequential_indexes) {
+      spdlog::info("elem: {}", elem.first.attribute_name);
+      spdlog::info("table: {}", elem.first.table);
+    }
+
+    spdlog::info("Querying pk idx: {}, {}", table_name, key_name);
+    auto pk_idx = m_sequential_indexes.at({table_name, key_name});
+    spdlog::info("got pk idx");
+
+    auto inserted_pk = pk_idx.bulk_insert<pk_type>(pk_values);
+    spdlog::info("Inserted records into pk idx");
+
+    auto inserted_bools = inserted_pk.second;
+    spdlog::info("got bools from pk idx");
+
+    spdlog::info("Finished inserted_bools filling");
     inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
                             inserted_bools.end());
+    spdlog::info("Finished inserted_indexes filling");
   });
 
   // get non-primary indexes

@@ -149,10 +149,9 @@ auto HeapFile::rec_to_string(const Record &rec) -> std::string {
 
   std::string record;
 
-  for (ulong idx = 0; idx < rec.m_fields.size(); idx++) {
+  for (const auto &m_field : rec.m_fields) {
 
-    record += string_cast(m_metadata.attribute_types.at(idx),
-                          rec.m_fields.at(idx).data());
+    record += {m_field.begin(), m_field.end()};
   }
   return record;
 }
