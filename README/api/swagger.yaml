@@ -30,6 +30,8 @@ paths:
                     $ref: '#/components/schemas/TableList'
                   queryData:
                     $ref: '#/components/schemas/QueryData'
+                  executionTime:
+                    $ref: '#/components/schemas/Time'
         '400':
           description: 'invalid query'
       requestBody:
@@ -52,10 +54,8 @@ components:
       type: array
       items:
         type: object
-        required:
-          - key
-        properties:
-          key:
-            type: string
         additionalProperties: true
-      description: Output of the executed query
+        description: Output of the executed query
+    Time:
+      type: number
+      description: Time taken by the db to execute the query
