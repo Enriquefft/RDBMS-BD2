@@ -5,8 +5,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 add_library(Indexes INTERFACE)
 
 target_compile_features(Indexes INTERFACE cxx_std_20)
-target_include_directories(Indexes INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-# target_sources(Indexes INTERFACE index.tpp AVL/avl_index.tpp)
+target_include_directories(Indexes SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 
