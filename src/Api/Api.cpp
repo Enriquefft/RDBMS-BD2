@@ -80,7 +80,7 @@ auto Api::parse_query(const crow::request &req) -> crow::response {
 void Api::set_routes() {
 
   m_app.route<crow ::black_magic ::get_parameter_tag("/query")>("/query")
-      .methods(crow::HTTPMethod::POST)(this->parse_query);
+      .methods(crow::HTTPMethod::POST)(parse_query);
   m_app.validate(); // Used to make sure all the route handlers are in order.
 }
 
@@ -91,5 +91,5 @@ void Api::run() {
 }
 
 void Api::handle(crow::request &req, crow::response &res) {
-  m_app.handle(req, res);
+  m_app.handle_full(req, res);
 }
