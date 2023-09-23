@@ -51,6 +51,17 @@ auto HeapFile::load() -> std::vector<Record> {
 
 auto HeapFile::add(const Record & /*record*/) -> pos_type { return {}; }
 
+auto HeapFile::bulk_insert(const std::vector<Record> &records)
+    -> std::vector<pos_type> {
+  spdlog::info("Bulk inserting {} records", records.size());
+
+  spdlog::info("Record:");
+  for (const auto &rec : records) {
+    spdlog::info(rec_to_string(rec));
+  }
+  return {};
+}
+
 auto HeapFile::next_pos() const -> pos_type { return {}; }
 
 auto HeapFile::read(const pos_type &pos) -> Record {
@@ -132,6 +143,18 @@ auto HeapFile::string_cast(const Type &type, const char *data) -> std::string {
   }
   }
   throw std::runtime_error("Invalid type");
+}
+
+auto HeapFile::rec_to_string(const Record &rec) -> std::string {
+
+  std::string record;
+
+  for (ulong idx = 0; idx < rec.m_fields.size(); idx++) {
+
+    record += string_cast(m_metadata.attribute_types.at(idx),
+                          rec.m_fields.at(idx).data());
+  }
+  return record;
 }
 
 auto HeapFile::get_record_size() const -> uint8_t { return C_RECORD_SIZE; }

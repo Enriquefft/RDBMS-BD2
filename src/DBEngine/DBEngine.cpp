@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <spdlog/spdlog.h>
+#include <variant>
 
 #include "Constants.hpp"
 #include "DBEngine.hpp"
@@ -82,7 +83,7 @@ auto DBEngine::create_table(const std::string &table_name,
     break;
   }
   case Type::BOOL: {
-    spdlog::error("Bool can't be indexed ");
+    spdlog::error("Bool can't be indexed. at: table_creation");
   }
   }
 
@@ -241,22 +242,45 @@ constexpr auto operator+=(INDEX_OPTION &lhs, const INDEX_OPTION &rhs)
 
 struct IndexInsert {
 
-  template <ValidType T>
-  IndexInsert(const std::vector<T> &_values) : values(_values) {}
-
   IndexInsert() = default;
 
+  template <ValidType T>
+  IndexInsert(const std::vector<T> &_values) : values(_values) {
+    spdlog::info("creating IndexInsert with {}",
+                 typeid(decltype(_values)).name());
+    if (std::is_same_v<std::vector<int>, decltype(_values)>) {
+      spdlog::info("creating IndexInsert with int");
+    }
+  }
+
   template <ValidType T, class... Args> void emplace_back(Args &&...args) {
-    std::get<std::vector<T>>(values).emplace_back(std::forward<Args>(args)...);
+    if (std::holds_alternative<std::vector<T>>(values)) {
+      std::get<std::vector<T>>(values).emplace_back(
+          std::forward<Args>(args)...);
+    } else {
+      spdlog::error("vector doesn't holds expected type");
+    }
   }
   template <ValidType T> void reserve(const auto &reserve_size) {
-    std::get<std::vector<T>>(values).reserve(reserve_size);
+    if (std::holds_alternative<std::vector<T>>(values)) {
+      std::get<std::vector<T>>(values).reserve(reserve_size);
+    } else {
+      spdlog::error("vector doesn't holds expected type in reserve()");
+    }
   }
-  template <ValidType T> T at(const auto &idx) const {
-    return std::get<std::vector<T>>(values).at(idx);
+  template <ValidType T> [[nodiscard]] T at(const auto &idx) const {
+    if (std::holds_alternative<std::vector<T>>(values)) {
+      return std::get<std::vector<T>>(values).at(idx);
+    }
+    spdlog::error("vector doesn't holds expected type in 'at'");
+    throw std::runtime_error("hold_wrong");
   }
   template <ValidType T> [[nodiscard]] auto size() const -> ulong {
-    return std::get<std::vector<T>>(values).size();
+    if (std::holds_alternative<std::vector<T>>(values)) {
+      return std::get<std::vector<T>>(values).size();
+    }
+    spdlog::error("vector doesn't holds expected type in size()");
+    throw std::runtime_error("hold_wrong");
   }
 
   std::variant<std::vector<int>, std::vector<float>, std::vector<std::string>>
@@ -298,29 +322,36 @@ static void handleOption(const INDEX_OPTION &option,
   }
 }
 
-constexpr auto
-generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
-                    const ulong &min_record_count) -> std::vector<IndexInsert> {
+static auto generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
+                                const ulong &min_record_count)
+    -> std::vector<IndexInsert> {
 
   std::vector<IndexInsert> inserted_keys;
   inserted_keys.resize(field_types.size());
+  spdlog::info("Reserving vector of idxInsert");
+
   for (ulong idx = 0; const auto &idx_type : field_types) {
     switch (idx_type.type) {
-    case DB_ENGINE::Type::INT:
-      inserted_keys.at(idx) = std::vector<int>();
+    case DB_ENGINE::Type::INT: {
+      IndexInsert insert_vec((std::vector<int>()));
+      inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<int>(min_record_count);
       break;
-    case DB_ENGINE::Type::FLOAT:
-      inserted_keys.at(idx) = std::vector<float>();
+    }
+    case DB_ENGINE::Type::FLOAT: {
+      IndexInsert insert_vec((std::vector<float>()));
+      inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<float>(min_record_count);
       break;
-    case DB_ENGINE::Type::VARCHAR:
-      inserted_keys.at(idx) = std::vector<std::string>();
+    }
+    case DB_ENGINE::Type::VARCHAR: {
+      IndexInsert insert_vec((std::vector<std::string>()));
+      inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<std::string>(min_record_count);
       break;
+    }
     case DB_ENGINE::Type::BOOL:
-      spdlog::error("Bool can't be indexed ");
-      break;
+      continue;
     }
   }
   return inserted_keys;
@@ -332,9 +363,10 @@ void insert_field(const auto &field, const ulong &curr_field,
 
   switch (field_types.at(curr_field).type) {
   case DB_ENGINE::Type::INT: {
+    auto field_val = std::string(field.begin(), field.end());
+    spdlog::info("converting {} to int", field_val);
     inserted_keys.at(curr_field)
-        .template emplace_back<int>(
-            std::stoi(std::string(field.begin(), field.end())));
+        .template emplace_back<int>(std::stoi(field_val));
     break;
   }
   case DB_ENGINE::Type::FLOAT: {
@@ -350,8 +382,20 @@ void insert_field(const auto &field, const ulong &curr_field,
     break;
   }
   case DB_ENGINE::Type::BOOL:
-    spdlog::error("Bool can't be indexed ");
+    spdlog::error("Bool can't be indexed at field insertion");
     break;
+  }
+}
+static auto get_sample_value(DB_ENGINE::Type type) -> std::string {
+  switch (type.type) {
+  case DB_ENGINE::Type::BOOL:
+    return "true";
+  case DB_ENGINE::Type::INT:
+    return "0";
+  case DB_ENGINE::Type::FLOAT:
+    return "0.0";
+  case DB_ENGINE::Type::VARCHAR:
+    return "a";
   }
 }
 
@@ -369,14 +413,24 @@ void DBEngine::csv_insert(const std::string &table_name,
   };
 
   std::filesystem::path table_path = TABLES_PATH + table_name;
-  std::filesystem::path csv_path = CSV_PATH + file.filename().string();
+  std::filesystem::path csv_path = CSV_PATH + file.filename().string() + ".csv";
+
+  if (!std::filesystem::exists(csv_path)) {
+    throw std::runtime_error("File does not exist");
+  }
 
   auto &table_heap = m_tables_raw.at(table_name);
+
+  spdlog::info("Engine csv_insert: {}, {}", table_name, csv_path.string());
 
   auto [key_type, key_name] = table_heap.get_key_name();
   auto key_idx = table_heap.get_attribute_idx(key_name);
 
   std::ifstream csv_stream(csv_path);
+  spdlog::info("Started stream");
+
+  spdlog::info("key_type: {}", key_type.to_string());
+  spdlog::info("key_name: {}", key_name);
 
   // Get csv size
   csv_stream.seekg(0, std::ios::end);
@@ -384,19 +438,22 @@ void DBEngine::csv_insert(const std::string &table_name,
   auto min_record_count =
       static_cast<ulong>(csv_size / table_heap.get_record_size());
   csv_stream.seekg(0, std::ios::beg);
+  spdlog::info("csv_size: {}", static_cast<ulong>(csv_size));
 
   std::string current_line;
 
   // Field types
   auto field_types = table_heap.get_types();
   auto inserted_keys = generate_key_output(field_types, min_record_count);
+  spdlog::info("Generated key outputs");
 
-  std::string key_value;
+  std::string key_value = get_sample_value(key_type);
 
   std::vector<bool> inserted_indexes;
 
   std::jthread pk_insertion;
 
+  spdlog::info("Started iterating csv file");
   key_cast_and_execute(key_type.type, key_value, [&](auto pk_value) {
     // Iterate records
     using pk_type = decltype(pk_value);
@@ -407,9 +464,13 @@ void DBEngine::csv_insert(const std::string &table_name,
                         sizeof(std::pair<pk_type, HeapFile::pos_type>);
     pk_values.reserve(min_record_count);
 
+    std::vector<Record> records;
+    spdlog::info("Iterating csv file");
     while (std::getline(csv_stream, current_line)) {
+      spdlog::info("Iterating line: {}", current_line);
 
       auto fields = current_line | std::ranges::views::split(',');
+      records.emplace_back(fields);
 
       // Iterate fields
       for (ulong curr_field = 0; auto field : fields) {
@@ -434,6 +495,9 @@ void DBEngine::csv_insert(const std::string &table_name,
         curr_field++;
       }
     }
+
+    table_heap.bulk_insert(records);
+
     pk_insertion.join();
     auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
                               .bulk_insert<pk_type>(pk_values)
@@ -491,7 +555,8 @@ void DBEngine::csv_insert(const std::string &table_name,
           pos_getter);
       break;
     case Type::BOOL:
-      spdlog::error("Bool can't be indexed");
+      spdlog::error(
+          "Bool can't be indexed. at: inserting into available indexes.");
       break;
     }
 
@@ -575,8 +640,28 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
   };
 }
 
+void DBEngine::clean_table(const std::string &table_name) {
+  std::filesystem::remove_all(TABLES_PATH + table_name);
+}
 void DBEngine::drop_table(const std::string &table_name) {
   std::filesystem::remove_all(TABLES_PATH + table_name);
+  m_tables_raw.erase(table_name);
+
+  for (auto &idx : m_avl_indexes) {
+    if (idx.first.table == table_name) {
+      m_avl_indexes.erase(idx.first);
+    }
+  }
+  for (auto &idx : m_isam_indexes) {
+    if (idx.first.table == table_name) {
+      m_avl_indexes.erase(idx.first);
+    }
+  }
+  for (auto &idx : m_sequential_indexes) {
+    if (idx.first.table == table_name) {
+      m_avl_indexes.erase(idx.first);
+    }
+  }
 }
 
 void DBEngine::generate_directories() {

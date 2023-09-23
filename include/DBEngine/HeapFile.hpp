@@ -21,6 +21,7 @@ public:
 
   auto load() -> std::vector<Record>;
   auto add(const Record &record) -> pos_type;
+  auto bulk_insert(const std::vector<Record> &records) -> std::vector<pos_type>;
   auto next_pos() const -> pos_type;
 
   auto read(const pos_type &pos) -> Record;
@@ -89,6 +90,8 @@ private:
 
   static auto string_cast(const Type &type, const char *data) -> std::string;
 
+  auto rec_to_string(const Record &rec) -> std::string;
+
   void update_first_deleted(pos_type pos);
   auto read_metadata() -> bool;
   static void generate_deleted_record(char *deleted, int pos);
@@ -98,7 +101,7 @@ private:
   auto to_string() -> std::string {
     std::string str;
     str += "Table name: " + m_table_name + "\n";
-    str += "Attribute names: ";
+    str += "Attribute names:\n";
     for (ulong i = 0; i < m_metadata.attribute_types.size(); i++) {
       str += m_metadata.attribute_names[i] + " ";
       str += m_metadata.attribute_types[i].to_string() + " ";
