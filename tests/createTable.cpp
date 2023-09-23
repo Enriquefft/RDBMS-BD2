@@ -25,7 +25,7 @@ protected:
     req.url = "/query";
     req.method = crow::HTTPMethod::POST;
   }
-  void TearDown() override { DBEngine::drop_table(TEST_TABLE); }
+  void TearDown() override { DBEngine::clean_table(TEST_TABLE); }
 };
 
 TEST_F(CreateTableTest, BasicCreate) {

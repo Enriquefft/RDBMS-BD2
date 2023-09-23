@@ -141,8 +141,9 @@ public:
   /// @param table_name The name of the table to drop.
   /// @details This function will delete the table, and all the indexes by
   /// removing the corresponding directory entries.
-  static void drop_table(const std::string &table_name);
+  void drop_table(const std::string &table_name);
 
+  static void clean_table(const std::string &table_name);
 private:
   /// @brief Generate the directories necesary for the database.
   static void generate_directories();

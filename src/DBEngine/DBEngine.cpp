@@ -575,8 +575,29 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
   };
 }
 
+void DBEngine::clean_table(const std::string &table_name) {
+  std::filesystem::remove_all(TABLES_PATH + table_name);
+}
+
 void DBEngine::drop_table(const std::string &table_name) {
   std::filesystem::remove_all(TABLES_PATH + table_name);
+  m_tables_raw.erase(table_name);
+
+  for (auto &idx : m_avl_indexes) {
+    if (idx.first.table == table_name) {
+      m_avl_indexes.erase(idx.first);
+    }
+  }
+  for (auto &idx : m_isam_indexes) {
+    if (idx.first.table == table_name) {
+      m_avl_indexes.erase(idx.first);
+    }
+  }
+  for (auto &idx : m_sequential_indexes) {
+    if (idx.first.table == table_name) {
+      m_avl_indexes.erase(idx.first);
+    }
+  }
 }
 
 void DBEngine::generate_directories() {
