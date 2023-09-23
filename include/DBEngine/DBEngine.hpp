@@ -59,7 +59,7 @@ public:
   auto search(const std::string &table_name, const Attribute &key,
               const std::function<bool(Record)> &expr,
               const std::vector<std::string> &selected_attributes)
-      -> std::string;
+      -> QueryResponse;
 
   /// @brief Search for all the keys in a table that are in the range
   /// [begin_key, end_key].
@@ -72,7 +72,7 @@ public:
                     const Attribute &end_key,
                     const std::function<bool(Record)> &expr,
                     const std::vector<std::string> &selected_attributes)
-      -> std::vector<std::string>;
+      -> QueryResponse;
 
   /// @brief Add a new value to a table.
   /// @param table_name The name of the table to add the value to.

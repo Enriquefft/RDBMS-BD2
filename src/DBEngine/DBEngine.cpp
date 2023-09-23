@@ -102,7 +102,7 @@ auto DBEngine::get_table_names() -> std::vector<std::string> {
 auto DBEngine::search(const std::string &table_name, const Attribute &key,
                       const std::function<bool(Record)> &expr,
                       const std::vector<std::string> &selected_attributes)
-    -> std::string {
+    -> QueryResponse {
 
   HeapFile::pos_type pos = 0;
 
@@ -136,7 +136,7 @@ auto DBEngine::range_search(const std::string &table_name,
                             const Attribute &end_key,
                             const std::function<bool(Record)> &expr,
                             const std::vector<std::string> &selected_attributes)
-    -> std::vector<std::string> {
+    -> QueryResponse {
 
   if (begin_key.name != end_key.name) {
     throw std::runtime_error("Cant apply range_search to different attributes");

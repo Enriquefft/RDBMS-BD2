@@ -1,5 +1,6 @@
 #include "HeapFile.hpp"
 #include "Constants.hpp"
+#include "Record/Record.hpp"
 #include "Utils/File.hpp"
 
 #include <numeric>
@@ -74,14 +75,14 @@ void HeapFile::update_first_deleted(pos_type pos) {
 
 auto HeapFile::filter(const Record & /*record*/,
                       const std::vector<std::string> & /*selected_attributes*/)
-    const -> std::string {
+    const -> QueryResponse {
 
   return {};
 }
 
 auto HeapFile::filter(const std::vector<Record> & /*record*/,
                       const std::vector<std::string> & /*selected_attributes*/)
-    const -> std::vector<std::string> {
+    const -> QueryResponse {
   return {};
 }
 

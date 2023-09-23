@@ -103,11 +103,33 @@ struct Record {
   Record() = default;
 
   std::vector<std::vector<char>> m_fields;
+  [[nodiscard]] auto begin() const { return m_fields.begin(); }
+  [[nodiscard]] auto end() const { return m_fields.end(); }
 
   auto write(std::fstream &file, const std::vector<Type> &types)
       -> std::ostream &;
   auto read(std::fstream &file, const std::vector<Type> &types)
       -> std::istream &;
+  friend auto operator<=>(const Record &, const Record &) noexcept = default;
+};
+
+// https://en.cppreference.com/w/cpp/container/unordered_set
+struct RecordHash {
+  size_t operator()(const Record &record) const {
+    size_t h = 0;
+    for (const auto &field : record) {
+      for (const auto &c : field) {
+        h ^= std::hash<char>{}(c) + 0x9e3779b9 + (h << 6) + (h >> 2);
+      }
+    }
+    return h;
+  }
+};
+
+using query_time_t = std::unordered_map<std::string, std::chrono::milliseconds>;
+struct QueryResponse {
+  std::vector<Record> records;
+  query_time_t query_times;
 };
 
 inline auto stob(std::string str) -> bool {

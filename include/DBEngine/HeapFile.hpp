@@ -36,10 +36,10 @@ public:
 
   auto filter(const Record &record,
               const std::vector<std::string> &selected_attributes) const
-      -> std::string;
+      -> QueryResponse;
   auto filter(const std::vector<Record> &record,
               const std::vector<std::string> &selected_attributes) const
-      -> std::vector<std::string>;
+      -> QueryResponse;
 
   [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string>;
   [[nodiscard]] auto get_index_names() const -> std::vector<std::string>;
