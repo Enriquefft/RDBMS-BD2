@@ -3,6 +3,8 @@
 
 #include "utils.hpp"
 
+namespace Index {
+
 struct Response {
   std::vector<physical_pos> records;
   std::chrono::milliseconds query_time;
@@ -20,5 +22,7 @@ struct Response {
 private:
   std::chrono::high_resolution_clock::time_point start_time;
 };
+
+} // namespace Index
 
 #endif // RESPONSE_HPP
