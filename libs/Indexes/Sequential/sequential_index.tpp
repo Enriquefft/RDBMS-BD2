@@ -4,7 +4,7 @@
 #include "sequential_index.hpp"
 using Index::Response;
 
-template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::rebuild() {
+template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::rebuild() const {
 
   std::fstream indexFile(this->indexFilename,
                          std::ios::in | std::ios::out | std::ios::binary);
@@ -264,7 +264,7 @@ SequentialIndex<KEY_TYPE>::binarySearch(FileType &file,
 
 template <typename KEY_TYPE>
 void SequentialIndex<KEY_TYPE>::insertAuxFile(
-    SequentialIndexRecord<KEY_TYPE> &sir) {
+    SequentialIndexRecord<KEY_TYPE> &sir) const {
   std::fstream auxFile(this->auxFilename,
                        std::ios::in | std::ios::out | std::ios::binary);
   if (!auxFile.is_open()) {
@@ -291,7 +291,7 @@ template <typename FileType>
 void SequentialIndex<KEY_TYPE>::insertAfterRecord(
     FileType &file, SequentialIndexRecord<KEY_TYPE> &sir_prev,
     SequentialIndexRecord<KEY_TYPE> &sir, SequentialIndexHeader &sih,
-    bool header) {
+    bool header) const {
   try {
     if (header) {
       sir.setNext(sih.next_pos, sih.next_file);
@@ -314,7 +314,8 @@ template <typename KEY_TYPE>
 template <typename FileType>
 void SequentialIndex<KEY_TYPE>::insertAux(
     FileType &indexFile, SequentialIndexRecord<KEY_TYPE> &sir_init,
-    SequentialIndexRecord<KEY_TYPE> &sir, BinarySearchResponse<KEY_TYPE> &bsr) {
+    SequentialIndexRecord<KEY_TYPE> &sir,
+    BinarySearchResponse<KEY_TYPE> &bsr) const {
   std::fstream auxFile(this->auxFilename,
                        std::ios::in | std::ios::out | std::ios::binary);
   if (!auxFile.is_open()) {
@@ -513,7 +514,8 @@ Response SequentialIndex<KEY_TYPE>::loadRecords(
 template <typename KEY_TYPE>
 void SequentialIndex<KEY_TYPE>::searchAuxFile(
     Data<KEY_TYPE> data, BinarySearchResponse<KEY_TYPE> &bir,
-    std::vector<physical_pos> &records, SequentialIndexRecord<KEY_TYPE> &sir) {
+    std::vector<physical_pos> &records,
+    SequentialIndexRecord<KEY_TYPE> &sir) const {
   std::fstream auxFile(this->auxFilename,
                        std::ios::in | std::ios::out | std::ios::binary);
   if (!auxFile.is_open())
@@ -672,7 +674,7 @@ Response SequentialIndex<KEY_TYPE>::range_search(Data<KEY_TYPE> begin,
 
 template <typename KEY_TYPE>
 Response SequentialIndex<KEY_TYPE>::erase(Data<KEY_TYPE> data,
-                                          Response &response) {
+                                          Response &response) const {
 
   std::fstream indexFile(this->indexFilename,
                          std::ios::in | std::ios::out | std::ios::binary);
@@ -862,6 +864,7 @@ Response SequentialIndex<KEY_TYPE>::remove(Data<KEY_TYPE> data) const {
 template <typename KEY_TYPE>
 std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
     const std::vector<std::pair<Data<KEY_TYPE>, physical_pos>> &records) const {
+
   Response response;
   response.startTimer();
   try {
@@ -869,8 +872,9 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
       response.stopTimer();
       return {response, {}};
     }
+    auto record_copy = records;
 
-    std::sort(records.begin(), records.end(),
+    std::sort(record_copy.begin(), record_copy.end(),
               [](std::pair<Data<KEY_TYPE>, physical_pos> a,
                  std::pair<Data<KEY_TYPE>, physical_pos> b) {
                 return a.first < b.first;
@@ -891,9 +895,9 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
 
       SequentialIndexRecord<KEY_TYPE> sir_prev;
       SequentialIndexRecord<KEY_TYPE> sir_cur;
-      for (size_t i = 0; i < records.size(); i++) {
-        sir_cur.setData(records[i].first);
-        sir_cur.setRawPos(records[i].second);
+      for (size_t i = 0; i < record_copy.size(); i++) {
+        sir_cur.setData(record_copy[i].first);
+        sir_cur.setRawPos(record_copy[i].second);
         sir_cur.setDupPos(END_OF_FILE);
         if (i == 0) {
           sir_cur.setCurrent(sizeof(SequentialIndexHeader), INDEXFILE);
@@ -905,7 +909,8 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
             this->insertDuplicate(indexFile, sir_prev, sir_cur);
           } else {
             sir_cur.setCurrent(sir_prev.current_pos +
-                                   sizeof(SequentialIndexRecord<KEY_TYPE>),
+                                   static_cast<std::streamoff>(
+                                       sizeof(SequentialIndexRecord<KEY_TYPE>)),
                                INDEXFILE);
             sir_cur.setNext(END_OF_FILE, INDEXFILE);
             sir_prev.setNext(sir_cur.current_pos, sir_cur.current_file);
@@ -963,7 +968,7 @@ void SequentialIndex<KEY_TYPE>::printDuplicatesFile() {
 }
 
 template <typename KEY_TYPE>
-bool SequentialIndex<KEY_TYPE>::validNumberRecords() {
+bool SequentialIndex<KEY_TYPE>::validNumberRecords() const {
   size_t indexRecords =
       this->template numberRecordsWithHeader<SequentialIndexHeader,
                                              SequentialIndexRecord<KEY_TYPE>>(

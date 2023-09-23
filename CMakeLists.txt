@@ -12,16 +12,17 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 # Targets
 add_executable(RDBMS src/main.cpp)
 
-# add_subdirectory(src/Api) # Api
+add_subdirectory(src/Api) # Api
 add_subdirectory(src/DBEngine) # DBEngine
-# add_subdirectory(libs/SqlParser) # SqlParser
+add_subdirectory(libs/SqlParser) # SqlParser
 add_subdirectory(libs/Indexes)
 
 # ##############################################################################
-# library dependance target_link_libraries(SqlParser PUBLIC DBEngine)
-# target_link_libraries(Api PUBLIC SqlParser)
-target_link_libraries(RDBMS PRIVATE DBEngine)
+# library dependance
 target_link_libraries(DBEngine PUBLIC Indexes)
+target_link_libraries(SqlParser PUBLIC DBEngine)
+target_link_libraries(Api PUBLIC SqlParser)
+target_link_libraries(RDBMS PRIVATE Api)
 
 # ##############################################################################
 
@@ -56,7 +57,7 @@ target_link_libraries(DBEngine PUBLIC Threads::Threads)
 
 # config
 target_link_libraries(RDBMS PRIVATE common)
-# target_link_libraries(Api PRIVATE common)
+target_link_libraries(Api PRIVATE common)
 target_link_libraries(DBEngine PRIVATE common)
 target_link_libraries(Indexes INTERFACE common)
 

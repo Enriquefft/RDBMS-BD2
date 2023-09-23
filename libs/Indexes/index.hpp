@@ -16,21 +16,24 @@ protected:
 
   template <typename RecordType>
   void getAllRawCurrentRecords(RecordType sir,
-                               std::vector<physical_pos> &records);
+                               std::vector<physical_pos> &records) const;
 
   template <typename FileType = std::fstream, typename RecordType>
-  void insertDuplicate(FileType &file, RecordType &sir, RecordType &sir_dup);
+  void insertDuplicate(FileType &file, RecordType &sir,
+                       RecordType &sir_dup) const;
 
   template <typename RecordType>
-  void insertDuplicateFile(RecordType &sir, physical_pos &duplicate_position);
+  void insertDuplicateFile(RecordType &sir,
+                           physical_pos &duplicate_position) const;
 
   template <typename HeaderType, typename RecordType>
-  size_t numberRecordsWithHeader(std::string file_name);
+  size_t numberRecordsWithHeader(std::string file_name) const;
 
   template <typename HeaderType, typename RecordType>
   void printFileWithHeader(std::string file_name);
 
-  template <typename RecordType> size_t numberRecords(std::string file_name);
+  template <typename RecordType>
+  size_t numberRecords(std::string file_name) const;
 
   template <typename RecordType> void printFile(const std::string &file_name);
 
@@ -38,19 +41,21 @@ protected:
   void writeHeader(FileType &file, HeaderType &header) const;
 
   template <typename FileType = std::fstream, typename HeaderType>
-  void readHeader(FileType &file, HeaderType &header);
+  void readHeader(FileType &file, HeaderType &header) const;
 
   template <typename FileType = std::fstream, typename RecordType>
-  void readRecord(FileType &file, RecordType &record);
+  void readRecord(FileType &file, RecordType &record) const;
 
   template <typename FileType = std::fstream, typename RecordType>
   void writeRecord(FileType &file, RecordType &record) const;
 
   template <typename FileType = std::fstream, typename RecordType>
-  void moveReadRecord(FileType &file, physical_pos &pos, RecordType &record);
+  void moveReadRecord(FileType &file, physical_pos &pos,
+                      RecordType &record) const;
 
   template <typename FileType = std::fstream, typename RecordType>
-  void moveWriteRecord(FileType &file, physical_pos &pos, RecordType &record);
+  void moveWriteRecord(FileType &file, physical_pos &pos,
+                       RecordType &record) const;
 
 public:
   std::string get_attribute_name() const { return this->attribute_name; }

@@ -4,7 +4,7 @@
 template <typename KEY_TYPE>
 template <typename RecordType>
 void Index<KEY_TYPE>::getAllRawCurrentRecords(
-    RecordType sir, std::vector<physical_pos> &records) {
+    RecordType sir, std::vector<physical_pos> &records) const {
   std::fstream duplicatesFile(this->duplicatesFilename,
                               std::ios::in | std::ios::out | std::ios::binary);
   if (!duplicatesFile.is_open())
@@ -26,7 +26,7 @@ void Index<KEY_TYPE>::getAllRawCurrentRecords(
 template <typename KEY_TYPE>
 template <typename FileType, typename RecordType>
 void Index<KEY_TYPE>::insertDuplicate(FileType &file, RecordType &rec,
-                                      RecordType &rec_dup) {
+                                      RecordType &rec_dup) const {
   try {
     physical_pos duplicate_position;
     rec_dup.setDupPos(rec.dup_pos);
@@ -40,8 +40,8 @@ void Index<KEY_TYPE>::insertDuplicate(FileType &file, RecordType &rec,
 
 template <typename KEY_TYPE>
 template <typename RecordType>
-void Index<KEY_TYPE>::insertDuplicateFile(RecordType &rec,
-                                          physical_pos &duplicate_position) {
+void Index<KEY_TYPE>::insertDuplicateFile(
+    RecordType &rec, physical_pos &duplicate_position) const {
   std::fstream duplicatesFile(this->duplicatesFilename,
                               std::ios::in | std::ios::out | std::ios::binary);
   if (!duplicatesFile.is_open())
@@ -61,7 +61,7 @@ void Index<KEY_TYPE>::insertDuplicateFile(RecordType &rec,
 
 template <typename KEY_TYPE>
 template <typename HeaderType, typename RecordType>
-size_t Index<KEY_TYPE>::numberRecordsWithHeader(std::string file_name) {
+size_t Index<KEY_TYPE>::numberRecordsWithHeader(std::string file_name) const {
   std::ifstream file(file_name, std::ios::in | std::ios::binary);
   if (!file.is_open()) {
     throw std::runtime_error("Couldn't open file");
@@ -101,7 +101,7 @@ void Index<KEY_TYPE>::printFileWithHeader(std::string file_name) {
 
 template <typename KEY_TYPE>
 template <typename RecordType>
-size_t Index<KEY_TYPE>::numberRecords(std::string file_name) {
+size_t Index<KEY_TYPE>::numberRecords(std::string file_name) const {
   std::ifstream file(file_name, std::ios::in | std::ios::binary);
   if (!file.is_open()) {
     throw std::runtime_error("Couldn't open file");
@@ -146,7 +146,7 @@ void Index<KEY_TYPE>::writeHeader(FileType &file, HeaderType &header) const {
 
 template <typename KEY_TYPE>
 template <typename FileType, typename HeaderType>
-void Index<KEY_TYPE>::readHeader(FileType &file, HeaderType &header) {
+void Index<KEY_TYPE>::readHeader(FileType &file, HeaderType &header) const {
   try {
     file.seekp(0, std::ios::beg);
     file.read(reinterpret_cast<char *>(&header), sizeof(HeaderType));
@@ -157,7 +157,7 @@ void Index<KEY_TYPE>::readHeader(FileType &file, HeaderType &header) {
 
 template <typename KEY_TYPE>
 template <typename FileType, typename RecordType>
-void Index<KEY_TYPE>::readRecord(FileType &file, RecordType &record) {
+void Index<KEY_TYPE>::readRecord(FileType &file, RecordType &record) const {
   try {
     file.read(reinterpret_cast<char *>(&record), sizeof(RecordType));
   } catch (...) {
@@ -178,7 +178,7 @@ void Index<KEY_TYPE>::writeRecord(FileType &file, RecordType &record) const {
 template <typename KEY_TYPE>
 template <typename FileType, typename RecordType>
 void Index<KEY_TYPE>::moveReadRecord(FileType &file, physical_pos &pos,
-                                     RecordType &record) {
+                                     RecordType &record) const {
   try {
     file.seekp(pos, std::ios::beg);
     file.read(reinterpret_cast<char *>(&record), sizeof(RecordType));
@@ -190,7 +190,7 @@ void Index<KEY_TYPE>::moveReadRecord(FileType &file, physical_pos &pos,
 template <typename KEY_TYPE>
 template <typename FileType, typename RecordType>
 void Index<KEY_TYPE>::moveWriteRecord(FileType &file, physical_pos &pos,
-                                      RecordType &record) {
+                                      RecordType &record) const {
   try {
     file.seekp(pos, std::ios::beg);
     file.write(reinterpret_cast<char *>(&record), sizeof(RecordType));

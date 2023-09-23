@@ -18,18 +18,18 @@ class SequentialIndex : public Index::Index<KEY_TYPE> {
   void createFile();
   bool fileExists();
 
-  bool validNumberRecords();
+  bool validNumberRecords() const;
 
   void searchAuxFile(Data<KEY_TYPE> data, BinarySearchResponse<KEY_TYPE> &bir,
                      std::vector<physical_pos> &records,
-                     SequentialIndexRecord<KEY_TYPE> &sir);
+                     SequentialIndexRecord<KEY_TYPE> &sir) const;
 
   template <typename FileType = std::fstream>
   void insertAux(FileType &indexFile, SequentialIndexRecord<KEY_TYPE> &sir_init,
                  SequentialIndexRecord<KEY_TYPE> &sir,
-                 BinarySearchResponse<KEY_TYPE> &bsr);
+                 BinarySearchResponse<KEY_TYPE> &bsr) const;
 
-  void insertAuxFile(SequentialIndexRecord<KEY_TYPE> &sir);
+  void insertAuxFile(SequentialIndexRecord<KEY_TYPE> &sir) const;
 
   template <typename FileType = std::fstream>
   void insertAfterRecord(FileType &file,
@@ -39,7 +39,7 @@ class SequentialIndex : public Index::Index<KEY_TYPE> {
 
   Index::Response add(Data<KEY_TYPE> data, physical_pos raw_pos,
                       bool rebuild) const;
-  Index::Response erase(Data<KEY_TYPE> data, Index::Response &response);
+  Index::Response erase(Data<KEY_TYPE> data, Index::Response &response) const;
 
   /*
       Binary search in files
@@ -88,7 +88,7 @@ public:
   Index::Response
   loadRecords(std::vector<std::pair<Data<KEY_TYPE>, physical_pos>> &records);
 
-  void rebuild();
+  void rebuild() const;
 
   std::pair<Index::Response, std::vector<bool>> bulk_insert(
       const std::vector<std::pair<Data<KEY_TYPE>, physical_pos>> &records)
