@@ -1,0 +1,6 @@
+POST localhost:8080/query
+Content-Type: application/json
+
+{
+    "query": "INSERT INTO ersonas from 'tab_personas.csv';"
+}

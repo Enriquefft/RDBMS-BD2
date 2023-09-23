@@ -75,15 +75,19 @@ else()
                              PUBLIC ${CMAKE_SOURCE_DIR}/libs/SpdLog/)
 endif()
 
-# Ctest include(FetchContent) FetchContent_Declare( googletest GIT_REPOSITORY
-# https://github.com/google/googletest.git # Always fetch the # latest version
-# GIT_TAG main)
+# Ctest
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git # Always fetch the #
+                                                          # latest version
+  GIT_TAG main)
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
 set(gtest_force_shared_crt
     ON
     CACHE BOOL "" FORCE)
-# FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(googletest)
 
 if(PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
   option(PACKAGE_TESTS "Build the tests" ON)

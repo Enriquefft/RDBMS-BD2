@@ -1,6 +1,8 @@
 **/build
 **/.cache
 
+*.bin
+
 /build
 /docs
 /.cache

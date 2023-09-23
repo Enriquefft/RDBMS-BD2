@@ -118,6 +118,7 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
             auto search_response = idx.second.search(key_value);
             pos = search_response.first;
             time = search_response.second;
+            break;
           }
         }
       });

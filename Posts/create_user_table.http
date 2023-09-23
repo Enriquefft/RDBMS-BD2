@@ -1,0 +1,6 @@
+POST localhost:8080/query
+Content-Type: application/json
+
+{
+    "query": "CREATE TABLE ersonas(id int primary key, nombre char(10), apellido char(20), aprobo_bd bool, score double);"
+}
