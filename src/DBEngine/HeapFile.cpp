@@ -53,6 +53,7 @@ auto HeapFile::load() -> std::vector<Record> {
   }
 
   std::vector<Record> records(m_metadata.record_count);
+  spdlog::info("Found {} records", m_metadata.record_count);
 
   for (auto &record : records) {
     record.read(m_file_stream, m_metadata.attribute_types);
@@ -70,6 +71,10 @@ auto HeapFile::add(const Record &record) -> pos_type {
   record.write(m_file_stream, m_metadata.attribute_types);
   auto response = m_file_stream.tellp();
   m_file_stream.close();
+
+  m_metadata.record_count++;
+  write_metadata();
+
   return response;
 }
 
