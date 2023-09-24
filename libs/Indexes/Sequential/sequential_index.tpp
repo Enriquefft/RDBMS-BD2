@@ -21,21 +21,21 @@ template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::rebuild() const {
   if (!duplicatesFile.is_open())
     throw std::runtime_error("Couldn't open duplicatesFile");
 
-  spdlog::error("Rebuilding index {}", this->indexFilename);
+  spdlog::info("Rebuilding index {}", this->indexFilename);
 
-  std::ofstream newIndexFile(this->indexFilename+".new",
+  std::ofstream newIndexFile(this->indexFilename + ".new",
                              std::ios::app | std::ios::binary);
   if (!newIndexFile.is_open())
     throw std::runtime_error("Couldn't create newIndexFile");
 
-  spdlog::error("newIndexFile {}", this->indexFilename+".new");
+  spdlog::info("newIndexFile {}", this->indexFilename + ".new");
 
-  std::ofstream newAuxFile(this->auxFilename+".new",
+  std::ofstream newAuxFile(this->auxFilename + ".new",
                            std::ios::app | std::ios::binary);
   if (!newAuxFile.is_open())
     throw std::runtime_error("Couldn't create newAuxFile");
 
-  std::ofstream newDuplicatesFile(this->duplicatesFilename+".new",
+  std::ofstream newDuplicatesFile(this->duplicatesFilename + ".new",
                                   std::ios::app | std::ios::binary);
   if (!newDuplicatesFile.is_open())
     throw std::runtime_error("Couldn't create newDuplicatesFile");
@@ -126,46 +126,46 @@ template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::rebuild() const {
   newAuxFile.close();
   newDuplicatesFile.close();
 
-  //bool rename_succes = true;
-  // truncate old files and replace new files with old names
+  // bool rename_succes = true;
+  //  truncate old files and replace new files with old names
 
-  spdlog::error("Removing old files");
+  spdlog::info("Removing old files");
 
   std::filesystem::remove(this->indexFilename);
 
-  //std::remove(this->indexFilename.c_str());
+  // std::remove(this->indexFilename.c_str());
 
-  spdlog::error("Removed file");
+  spdlog::info("Removed file");
 
+  std::filesystem::rename(this->indexFilename + ".new", this->indexFilename);
 
-  std::filesystem::rename(this->indexFilename+".new", this->indexFilename);
+  // rename_succes = std::rename((this->indexFilename+".new").c_str(),
+  //                             this->indexFilename.c_str());
 
-  //rename_succes = std::rename((this->indexFilename+".new").c_str(),
-  //                            this->indexFilename.c_str());
-
-  spdlog::error("Renamed file");
+  spdlog::info("Renamed file");
 
   std::filesystem::remove(this->auxFilename);
-  
-  //std::remove(this->auxFilename.c_str());
 
-  std::filesystem::rename(this->auxFilename+".new", this->auxFilename);
+  // std::remove(this->auxFilename.c_str());
 
-  //rename_succes = std::rename((this->auxFilename+".new").c_str(),
-        //                      this->auxFilename.c_str());
+  std::filesystem::rename(this->auxFilename + ".new", this->auxFilename);
+
+  // rename_succes = std::rename((this->auxFilename+".new").c_str(),
+  //                       this->auxFilename.c_str());
 
   std::filesystem::remove(this->duplicatesFilename);
 
-  //std::remove(this->duplicatesFilename.c_str());
+  // std::remove(this->duplicatesFilename.c_str());
 
-  std::filesystem::rename(this->duplicatesFilename+".new", this->duplicatesFilename);
+  std::filesystem::rename(this->duplicatesFilename + ".new",
+                          this->duplicatesFilename);
 
-  //rename_succes = std::rename((this->duplicatesFilename+".new").c_str(),
-      //                        this->duplicatesFilename.c_str());
+  // rename_succes = std::rename((this->duplicatesFilename+".new").c_str(),
+  //                         this->duplicatesFilename.c_str());
 
- /*  if (!rename_succes) {
-    throw std::runtime_error("Couldn't rename files");
-  } */
+  /*  if (!rename_succes) {
+     throw std::runtime_error("Couldn't rename files");
+   } */
 }
 
 /*
@@ -424,7 +424,8 @@ Response SequentialIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
                                         physical_pos raw_pos,
                                         bool rebuild) const {
 
-  spdlog::error("Adding {} to index {}", data, raw_pos);
+  spdlog::info("Adding {} to index {}", data,
+               static_cast<std::streamoff>(raw_pos));
   Response response;
   response.startTimer();
 
@@ -472,7 +473,7 @@ Response SequentialIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
       this->insertDuplicate(indexFile, bsr.sir, sir);
     } else if (bsr.sir.next_file == INDEXFILE) {
       // Insert between cur and next
-      spdlog::error("Inserting between cur and next");
+      spdlog::info("Inserting between cur and next");
       this->insertAfterRecord(indexFile, bsr.sir, sir, bsr.sih, bsr.header);
     } else {
       // Move to aux file from cur
@@ -489,9 +490,8 @@ Response SequentialIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
   response.stopTimer();
   indexFile.close();
 
-  /* std::fstream ifile(this->indexFilename, std::ios::in | std::ios::out | std::ios::binary);
-  SequentialIndexHeader h;
-  this->readHeader(ifile, h);
+  /* std::fstream ifile(this->indexFilename, std::ios::in | std::ios::out |
+  std::ios::binary); SequentialIndexHeader h; this->readHeader(ifile, h);
   std::cout<<"HEADER"<<std::endl;
   std::cout<<h<<std::endl;
   SequentialIndexRecord<KEY_TYPE> r;
@@ -509,13 +509,14 @@ Response SequentialIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
   }
 
   /* std::cout<<"INDEXFILE"<<std::endl;
-  this->template printFileWithHeader<SequentialIndexHeader, SequentialIndexRecord<KEY_TYPE>>(this->indexFilename);
+  this->template printFileWithHeader<SequentialIndexHeader,
+  SequentialIndexRecord<KEY_TYPE>>(this->indexFilename);
   std::cout<<"AUXFILE"<<std::endl;
-  this->template printFile<SequentialIndexRecord<KEY_TYPE>>(this->auxFilename);  */
+  this->template printFile<SequentialIndexRecord<KEY_TYPE>>(this->auxFilename);
+*/
 
-  /* std::fstream ifile(this->indexFilename, std::ios::in | std::ios::out | std::ios::binary);
-  SequentialIndexHeader h;
-  this->readHeader(ifile, h);
+  /* std::fstream ifile(this->indexFilename, std::ios::in | std::ios::out |
+  std::ios::binary); SequentialIndexHeader h; this->readHeader(ifile, h);
   std::cout<<"HEADER"<<std::endl;
   std::cout<<h<<std::endl;
   SequentialIndexRecord<KEY_TYPE> r;
@@ -528,7 +529,7 @@ Response SequentialIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
   }
   ifile.close();  */
 
-  //thi
+  // thi
 
   return response;
 }
@@ -985,14 +986,13 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
         }
         response.records.push_back(sir_cur.raw_pos);
       }
-
     }
     indexFile.close();
   } catch (...) {
     response.stopTimer();
     throw std::runtime_error("Couldn't load records");
   }
-  
+
   response.stopTimer();
   return {response, std::vector<bool>(records.size())};
 }
@@ -1005,7 +1005,8 @@ std::string SequentialIndex<KEY_TYPE>::get_index_name() const {
 /*
     Print files sequentially
 */
-template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::printIndexFile() const {
+template <typename KEY_TYPE>
+void SequentialIndex<KEY_TYPE>::printIndexFile() const {
   try {
     this->template printFileWithHeader<SequentialIndexHeader,
                                        SequentialIndexRecord<KEY_TYPE>>(
@@ -1015,7 +1016,8 @@ template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::printIndexFile() co
   }
 }
 
-template <typename KEY_TYPE> void SequentialIndex<KEY_TYPE>::printAuxFile() const {
+template <typename KEY_TYPE>
+void SequentialIndex<KEY_TYPE>::printAuxFile() const {
   try {
     this->template printFile<SequentialIndexRecord<KEY_TYPE>>(
         this->auxFilename);
