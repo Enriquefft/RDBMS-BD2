@@ -28,6 +28,7 @@ template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::initFile() {
 
 //*
 template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::initIndex() {
+  
   initFile();
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
