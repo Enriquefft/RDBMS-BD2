@@ -8,6 +8,7 @@
 /.cache
 /DB_FILES
 /.ccls-cache
+.vscode
 
 # /.ccls-cache
 

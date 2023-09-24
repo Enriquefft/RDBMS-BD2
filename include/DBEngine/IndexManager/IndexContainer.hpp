@@ -1,10 +1,12 @@
 #ifndef INDEX_CONTAINER_HPP
 #define INDEX_CONTAINER_HPP
 
-// #include "AVL/avl_index.hpp"
 #include "IndexConcept.hpp"
-#include "Sequential/sequential_index.hpp"
 #include <spdlog/spdlog.h>
+
+#include "AVL/avl_index.hpp"
+#include "Sequential/sequential_index.hpp"
+// #include "Isam/isam_index.hpp"
 
 template <template <typename> class IndexType>
   requires ValidIndex<IndexType>
@@ -65,10 +67,10 @@ struct SequentialIndexContainer : public IndexContainer<SequentialIndex> {
   SequentialIndexContainer(SequentialIndex<T> &idx)
       : IndexContainer<SequentialIndex>{idx} {}
 };
-struct AvlIndexContainer : public IndexContainer<SequentialIndex> {
+
+struct AvlIndexContainer : public IndexContainer<AVLIndex> {
   template <ValidIndexType T>
-  AvlIndexContainer(SequentialIndex<T> &idx)
-      : IndexContainer<SequentialIndex>{idx} {}
+  AvlIndexContainer(AVLIndex<T> &idx) : IndexContainer<AVLIndex>{idx} {}
 };
 struct IsamIndexContainer : public IndexContainer<SequentialIndex> {
   template <ValidIndexType T>
