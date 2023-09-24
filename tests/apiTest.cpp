@@ -14,7 +14,8 @@ TEST_F(ApiTests, Status200) {
 
   req.url = "/query";
   req.method = crow::HTTPMethod::POST;
-  req.body = R"({"query": "SELECT * FROM users"})";
+  req.body =
+      R"({"query": "CREATE TABLE t_name(iden int primary key, col1 char(1), col2 char(4));"})";
 
   app.handle(req, res);
   EXPECT_EQ(res.code, 200);

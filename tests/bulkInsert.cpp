@@ -32,7 +32,7 @@ protected:
         TEST_TABLE);
     test_request(TABLE_CREATE);
   }
-  // void TearDown() override { engine.drop_table(TEST_TABLE); }
+  void TearDown() override { engine.drop_table(TEST_TABLE); }
 };
 
 TEST_F(BulkInsertTest, SimpleInsert) {
