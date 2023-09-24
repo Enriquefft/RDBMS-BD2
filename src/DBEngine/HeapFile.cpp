@@ -84,17 +84,52 @@ void HeapFile::update_first_deleted(pos_type pos) {
   write_metadata();
 }
 
-auto HeapFile::filter(const Record & /*record*/,
-                      const std::vector<std::string> & /*selected_attributes*/)
-    const -> QueryResponse {
+auto HeapFile::filter(Record &record,
+                      const std::vector<std::string> &selected_attributes,
+                      const query_time_t &times) const -> QueryResponse {
 
-  return {};
+  // Get indexes of attributes to filter
+  std::vector<uint8_t> attribute_idxs;
+
+  attribute_idxs.reserve(selected_attributes.size());
+  for (const auto &attr_name : selected_attributes) {
+    attribute_idxs.push_back(m_metadata.get_attribute_idx(attr_name));
+  }
+
+  // Iterate over each word in reverse order to prevent iterator invalidation
+  for (int i = static_cast<int>(record.m_fields.size()) - 1; i >= 0; --i) {
+    // If the index is not in the indices vector, remove the word
+    if (!std::binary_search(attribute_idxs.begin(), attribute_idxs.end(), i)) {
+      record.m_fields.erase(record.begin() + i);
+    }
+  }
+  return {{record}, times};
 }
 
-auto HeapFile::filter(const std::vector<Record> & /*record*/,
-                      const std::vector<std::string> & /*selected_attributes*/)
-    const -> QueryResponse {
-  return {};
+auto HeapFile::filter(std::vector<Record> &records,
+                      const std::vector<std::string> &selected_attributes,
+                      const query_time_t &times) const -> QueryResponse {
+
+  std::vector<uint8_t> attribute_idxs;
+  attribute_idxs.reserve(selected_attributes.size());
+  for (const auto &attr_name : selected_attributes) {
+    attribute_idxs.push_back(m_metadata.get_attribute_idx(attr_name));
+  }
+
+  // We assume the indexes are already sorted
+
+  // Iterate over each record
+  for (auto &record : records) {
+    // Iterate over each word in reverse order
+    for (int i = static_cast<int>(record.m_fields.size()) - 1; i >= 0; --i) {
+      // If the index is not in the indices vector, remove the word
+      if (!std::binary_search(attribute_idxs.begin(), attribute_idxs.end(),
+                              i)) {
+        record.m_fields.erase(record.begin() + i);
+      }
+    }
+  }
+  return {records, times};
 }
 
 void HeapFile::write_metadata() {

@@ -108,18 +108,18 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
 
   HeapFile::pos_type pos = 0;
 
-  response_time time;
+  query_time_t times;
 
   auto key_type = m_tables_raw.at(table_name).get_type(key);
 
   key_cast_and_execute(
-      key_type.type, key.value, [this, &key, &pos, &time](auto key_value) {
+      key_type.type, key.value, [this, &key, &pos, &times](auto key_value) {
         for (const auto &idx : m_sequential_indexes) {
           if (idx.second.get_attribute_name() == key.name) {
 
             auto search_response = idx.second.search(key_value);
             pos = search_response.first;
-            time = search_response.second;
+            times["SEQUENTIAL_SINGLE_SEARCH"] = search_response.second;
             break;
           }
         }
@@ -131,7 +131,7 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
     return {};
   }
 
-  return m_tables_raw.at(table_name).filter(record, selected_attributes);
+  return m_tables_raw.at(table_name).filter(record, selected_attributes, times);
 }
 auto DBEngine::range_search(const std::string &table_name,
                             const Attribute &begin_key,
@@ -145,20 +145,20 @@ auto DBEngine::range_search(const std::string &table_name,
   }
 
   std::vector<HeapFile::pos_type> positions;
-  response_time time;
+  query_time_t times;
 
   auto key_type = m_tables_raw.at(table_name).get_type(begin_key);
 
   key_cast_and_execute(
       key_type.type, begin_key.value, end_key.value,
-      [this, &positions, &begin_key, &time](auto begin_key_value,
-                                            auto end_key_value) {
+      [this, &positions, &begin_key, &times](auto begin_key_value,
+                                             auto end_key_value) {
         for (const auto &idx : m_sequential_indexes) {
           if (idx.second.get_attribute_name() == begin_key.name) {
             auto idx_response =
                 idx.second.range_search(begin_key_value, end_key_value);
             positions = idx_response.records;
-            time = idx_response.query_time;
+            times["SEQUENTIAL_RANGE_SEARCH"] = idx_response.query_time;
           }
         }
       });
@@ -172,7 +172,23 @@ auto DBEngine::range_search(const std::string &table_name,
       response.push_back(rec);
     }
   }
-  return m_tables_raw.at(table_name).filter(response, selected_attributes);
+  return m_tables_raw.at(table_name)
+      .filter(response, selected_attributes, times);
+}
+
+auto DBEngine::load(const std::string &table_name,
+                    const std::vector<std::string> &selected_attributes) {
+
+  auto start = std::chrono::high_resolution_clock::now();
+  auto response = m_tables_raw.at(table_name).load();
+  auto end = std::chrono::high_resolution_clock::now();
+
+  auto duration =
+      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+  query_time_t times{{"LOAD", duration}};
+
+  return m_tables_raw.at(table_name)
+      .filter(response, selected_attributes, times);
 }
 
 auto DBEngine::add(const std::string &table_name, const Record &value) -> bool {
@@ -663,6 +679,16 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
         });
     return cmp == EQUAL;
   };
+}
+
+void DBEngine::sort_attributes(const std::string &table_name,
+                               std::vector<std::string> &attributes) const {
+  // sort based on m_tables_raw.get_attribute_idx(string) value
+
+  std::ranges::sort(attributes, [&](const auto &val1, const auto &val2) {
+    return m_tables_raw.at(table_name).get_attribute_idx(val1) <
+           m_tables_raw.at(table_name).get_attribute_idx(val2);
+  });
 }
 
 void DBEngine::clean_table(const std::string &table_name) {

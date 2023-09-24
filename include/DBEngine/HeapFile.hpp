@@ -35,12 +35,12 @@ public:
   auto get_key_name() const -> std::pair<Type, std::string>;
   auto get_key_idx() const -> uint8_t;
 
-  auto filter(const Record &record,
-              const std::vector<std::string> &selected_attributes) const
-      -> QueryResponse;
-  auto filter(const std::vector<Record> &record,
-              const std::vector<std::string> &selected_attributes) const
-      -> QueryResponse;
+  auto filter(Record &record,
+              const std::vector<std::string> &selected_attributes,
+              const query_time_t &times) const -> QueryResponse;
+  auto filter(std::vector<Record> &record,
+              const std::vector<std::string> &selected_attributes,
+              const query_time_t &times) const -> QueryResponse;
 
   [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string>;
   [[nodiscard]] auto get_index_names() const -> std::vector<std::string>;
