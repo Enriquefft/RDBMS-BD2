@@ -25,6 +25,7 @@ public:
   auto next_pos() const -> pos_type;
 
   auto read(const pos_type &pos) -> Record;
+  auto read(const std::vector<pos_type> &pos) -> std::vector<Record>;
   auto remove(const pos_type &pos) -> bool;
 
   auto get_type(const std::string &attribute_name) const -> Type;
