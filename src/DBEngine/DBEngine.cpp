@@ -6,6 +6,7 @@
 #include <ios>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <stdexcept>
 #include <string>
@@ -232,6 +233,23 @@ enum class INDEX_OPTION : uint8_t {
   ISAM = 1U << 1U,
   SEQUENTIAL = 1U << 2U
 };
+static auto operator<<(std::ostream &ost, const INDEX_OPTION &option)
+    -> auto & {
+
+  switch (option) {
+
+  case INDEX_OPTION::NONE:
+    return ost << "NONE";
+  case INDEX_OPTION::AVL:
+    return ost << "AVL";
+  case INDEX_OPTION::ISAM:
+    return ost << "ISAM";
+  case INDEX_OPTION::SEQUENTIAL:
+    return ost << "SEQUENTIAL";
+  }
+
+  return ost << static_cast<uint8_t>(option);
+}
 
 constexpr auto operator+=(INDEX_OPTION &lhs, const INDEX_OPTION &rhs)
     -> INDEX_OPTION & {
@@ -247,38 +265,20 @@ struct IndexInsert {
   template <ValidType T>
   IndexInsert(const std::vector<T> &_values) : values(_values) {
     if (std::is_same_v<std::vector<int>, decltype(_values)>) {
-      spdlog::info("creating IndexInsert with int");
     }
   }
 
   template <ValidType T, class... Args> void emplace_back(Args &&...args) {
-    if (std::holds_alternative<std::vector<T>>(values)) {
-      std::get<std::vector<T>>(values).emplace_back(
-          std::forward<Args>(args)...);
-    } else {
-      spdlog::error("vector doesn't holds expected type in emplace");
-    }
+    std::get<std::vector<T>>(values).emplace_back(std::forward<Args>(args)...);
   }
   template <ValidType T> void reserve(const auto &reserve_size) {
-    if (std::holds_alternative<std::vector<T>>(values)) {
-      std::get<std::vector<T>>(values).reserve(reserve_size);
-    } else {
-      spdlog::error("vector doesn't holds expected type in reserve()");
-    }
+    std::get<std::vector<T>>(values).reserve(reserve_size);
   }
-  template <ValidType T> [[nodiscard]] T at(const auto &idx) const {
-    if (std::holds_alternative<std::vector<T>>(values)) {
-      return std::get<std::vector<T>>(values).at(idx);
-    }
-    spdlog::error("vector doesn't holds expected type in 'at'");
-    throw std::runtime_error("hold_wrong");
+  template <ValidType T> [[nodiscard]] auto at(const auto &idx) const -> T {
+    return std::get<std::vector<T>>(values).at(idx);
   }
   template <ValidType T> [[nodiscard]] auto size() const -> ulong {
-    if (std::holds_alternative<std::vector<T>>(values)) {
-      return std::get<std::vector<T>>(values).size();
-    }
-    spdlog::error("vector doesn't holds expected type in size()");
-    throw std::runtime_error("hold_wrong");
+    return std::get<std::vector<T>>(values).size();
   }
 
   std::variant<std::vector<int>, std::vector<float>, std::vector<std::string>>
@@ -286,10 +286,18 @@ struct IndexInsert {
 };
 
 template <ValidType T>
-static void handleOption(const INDEX_OPTION &option,
-                         const IndexInsert &inserted_keys,
-                         const std::vector<bool> &pk_insertion, auto &avl,
-                         auto &sequential, auto &isam, const auto &get_pos) {
+static void handle_option(const INDEX_OPTION &option,
+                          const IndexInsert &inserted_keys,
+                          const std::vector<bool> &pk_insertion,
+                          std::optional<AvlIndexContainer> avl, auto sequential,
+                          auto isam, const auto &get_pos) {
+
+  spdlog::info("Inserting into {}", static_cast<uint8_t>(option));
+  spdlog::info("values");
+  spdlog::info("NONE {}", static_cast<uint8_t>(INDEX_OPTION::NONE));
+  spdlog::info("avl {}", static_cast<uint8_t>(INDEX_OPTION::AVL));
+  spdlog::info("isam {}", static_cast<uint8_t>(INDEX_OPTION::ISAM));
+  spdlog::info("seq {}", static_cast<uint8_t>(INDEX_OPTION::SEQUENTIAL));
 
   std::bitset<3> options(static_cast<uint8_t>(option));
 
@@ -303,19 +311,22 @@ static void handleOption(const INDEX_OPTION &option,
     }
   }
 
-  if (options.test(static_cast<size_t>(INDEX_OPTION::AVL))) {
+  if (options.test(0)) {
+    spdlog::info("Found avl");
     std::jthread avl_insert([&avl, &inserted_indexes]() {
-      avl.template bulk_insert<T>(inserted_indexes);
+      avl.value().template bulk_insert<T>(inserted_indexes);
     });
   }
-  if (options.test(static_cast<size_t>(INDEX_OPTION::ISAM))) {
+  if (options.test(1)) {
+    spdlog::info("Found isam");
     std::jthread isam_insert([&isam, &inserted_indexes]() {
-      isam.template bulk_insert<T>(inserted_indexes);
+      isam.value().template bulk_insert<T>(inserted_indexes);
     });
   }
-  if (options.test(static_cast<size_t>(INDEX_OPTION::SEQUENTIAL))) {
+  if (options.test(2)) {
+    spdlog::info("Found seq");
     std::jthread sequential_insert([&sequential, &inserted_indexes]() {
-      sequential.bulk_insert(inserted_indexes);
+      sequential.value().bulk_insert(inserted_indexes);
     });
   }
 }
@@ -326,12 +337,10 @@ static auto generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
 
   std::vector<IndexInsert> inserted_keys;
   inserted_keys.resize(field_types.size());
-  spdlog::info("Reserving vector of idxInsert");
 
   for (ulong idx = 0; const auto &idx_type : field_types) {
     switch (idx_type.type) {
     case DB_ENGINE::Type::INT: {
-      spdlog::info("inserting vec<int> into indexes at {}", idx);
 
       IndexInsert insert_vec((std::vector<int>()));
       inserted_keys.at(idx) = insert_vec;
@@ -339,14 +348,12 @@ static auto generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
       break;
     }
     case DB_ENGINE::Type::FLOAT: {
-      spdlog::info("inserting vec<float> into indexes at {}", idx);
       IndexInsert insert_vec((std::vector<float>()));
       inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<float>(min_record_count);
       break;
     }
     case DB_ENGINE::Type::VARCHAR: {
-      spdlog::info("inserting vec<string> into indexes at {}", idx);
       IndexInsert insert_vec((std::vector<std::string>()));
       inserted_keys.at(idx) = insert_vec;
       inserted_keys.at(idx).reserve<std::string>(min_record_count);
@@ -364,12 +371,9 @@ void insert_field(const auto &field, const ulong &curr_field,
                   const std::vector<DB_ENGINE::Type> &field_types,
                   std::vector<IndexInsert> &inserted_keys) {
 
-  spdlog::info("Inserting field into {}", curr_field);
   switch (field_types.at(curr_field).type) {
   case DB_ENGINE::Type::INT: {
     auto field_val = std::string(field.begin(), field.end());
-    spdlog::info("converting {} to int", field_val);
-    spdlog::info("emplacing int {}", curr_field);
 
     inserted_keys.at(curr_field)
         .template emplace_back<int>(std::stoi(field_val));
@@ -393,6 +397,7 @@ void insert_field(const auto &field, const ulong &curr_field,
     break;
   }
 }
+
 static auto get_sample_value(DB_ENGINE::Type type) -> std::string {
   switch (type.type) {
   case DB_ENGINE::Type::BOOL:
@@ -404,6 +409,15 @@ static auto get_sample_value(DB_ENGINE::Type type) -> std::string {
   case DB_ENGINE::Type::VARCHAR:
     return "a";
   }
+}
+
+template <typename T>
+auto get_idx(std::string table_name, std::string attribute_name, T idx_map)
+    -> std::optional<typename T::mapped_type> {
+  if (idx_map.contains({table_name, attribute_name})) {
+    return idx_map.at({table_name, attribute_name});
+  }
+  return std::nullopt;
 }
 
 void DBEngine::csv_insert(const std::string &table_name,
@@ -428,16 +442,10 @@ void DBEngine::csv_insert(const std::string &table_name,
 
   auto &table_heap = m_tables_raw.at(table_name);
 
-  spdlog::info("Engine csv_insert: {}, {}", table_name, csv_path.string());
-
   auto [key_type, key_name] = table_heap.get_key_name();
   auto primary_key_idx = table_heap.get_attribute_idx(key_name);
 
   std::ifstream csv_stream(csv_path);
-  spdlog::info("Started stream");
-
-  spdlog::info("key_type: {}", key_type.to_string());
-  spdlog::info("key_name: {}", key_name);
 
   // Get csv size
   csv_stream.seekg(0, std::ios::end);
@@ -445,14 +453,12 @@ void DBEngine::csv_insert(const std::string &table_name,
   auto min_record_count =
       static_cast<ulong>(csv_size / table_heap.get_record_size());
   csv_stream.seekg(0, std::ios::beg);
-  spdlog::info("csv_size: {}", static_cast<ulong>(csv_size));
 
   std::string current_line;
 
   // Field types
   auto field_types = table_heap.get_types();
   auto inserted_keys = generate_key_output(field_types, min_record_count);
-  spdlog::info("Generated key outputs");
 
   std::string key_value = get_sample_value(key_type);
 
@@ -460,7 +466,6 @@ void DBEngine::csv_insert(const std::string &table_name,
 
   std::jthread pk_insertion;
 
-  spdlog::info("Started iterating csv file");
   key_cast_and_execute(key_type.type, key_value, [&](auto pk_value) {
     // Iterate records
     using pk_type = decltype(pk_value);
@@ -472,9 +477,7 @@ void DBEngine::csv_insert(const std::string &table_name,
     pk_values.reserve(min_record_count);
 
     std::vector<Record> records;
-    spdlog::info("Iterating csv file");
     while (std::getline(csv_stream, current_line)) {
-      spdlog::info("Iterating line: {}", current_line);
 
       auto fields = current_line | std::ranges::views::split(',');
       records.emplace_back(fields);
@@ -482,8 +485,6 @@ void DBEngine::csv_insert(const std::string &table_name,
       // Iterate fields
       for (ulong curr_field = 0; auto field : fields) {
 
-        spdlog::info("Iterating field: {}",
-                     std::string(field.begin(), field.end()));
         insert_field(field, curr_field, field_types, inserted_keys);
 
         // Division by 0 here
@@ -507,48 +508,37 @@ void DBEngine::csv_insert(const std::string &table_name,
     }
 
     table_heap.bulk_insert(records);
-    spdlog::info("Inserted records into heap file");
-
-    spdlog::info("is_joinable 3: {}", pk_insertion.joinable());
 
     if (pk_insertion.joinable()) {
       pk_insertion.join();
     }
-    spdlog::info("Finished pk_insertion");
 
-    spdlog::info("Iterating pk_values");
-    for (const auto &elem : m_sequential_indexes) {
-      spdlog::info("elem: {}", elem.first.attribute_name);
-      spdlog::info("table: {}", elem.first.table);
-    }
+    spdlog::info("Inserting into primary key index n° {}", pk_values.size());
+    auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
+                              .bulk_insert<pk_type>(pk_values)
+                              .second;
+    spdlog::info("Recieved bool count: {}", inserted_bools.size());
 
-    spdlog::info("Querying pk idx: {}, {}", table_name, key_name);
-    auto pk_idx = m_sequential_indexes.at({table_name, key_name});
-    spdlog::info("got pk idx");
-
-    auto inserted_pk = pk_idx.bulk_insert<pk_type>(pk_values);
-    spdlog::info("Inserted records into pk idx");
-
-    auto inserted_bools = inserted_pk.second;
-    spdlog::info("got bools from pk idx");
-
-    spdlog::info("Finished inserted_bools filling");
     inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
                             inserted_bools.end());
-    spdlog::info("Finished inserted_indexes filling");
   });
 
   // get non-primary indexes
   std::vector<INDEX_OPTION> available_indexes;
+  available_indexes.resize(field_types.size(), INDEX_OPTION::NONE);
 
   // Fill available_indexes
   auto process_indexes = [&table_name, &available_indexes, &table_heap](
                              const auto &indexes, INDEX_OPTION option) {
+    auto count = 0;
     for (const auto &[idx, UNUSED] : indexes) {
       if (idx.table == table_name) {
+        std::cout << "Found available index on :" << idx.attribute_name << ' '
+                  << count << ' ' << option << '\n';
         available_indexes.at(
             table_heap.get_attribute_idx(idx.attribute_name)) += option;
       }
+      count++;
     }
   };
   process_indexes(m_sequential_indexes, INDEX_OPTION::SEQUENTIAL);
@@ -556,34 +546,37 @@ void DBEngine::csv_insert(const std::string &table_name,
   process_indexes(m_avl_indexes, INDEX_OPTION::AVL);
 
   // Insert records into available indexes
-  auto attribute_names = m_tables_raw.at(table_name).get_attribute_names();
+  auto attribute_names = table_heap.get_attribute_names();
 
+  spdlog::info("Inserting into available indexes");
   for (ulong idx_c = 0; const auto &idx : available_indexes) {
+
+    spdlog::info("Inserting into index n° {}", idx_c);
 
     switch (field_types.at(idx_c).type) {
 
     case Type::INT:
-      handleOption<int>(
+      handle_option<int>(
           idx, inserted_keys.at(idx_c), inserted_indexes,
-          m_avl_indexes.at({table_name, attribute_names.at(idx_c)}),
-          m_sequential_indexes.at({table_name, attribute_names.at(idx_c)}),
-          m_isam_indexes.at({table_name, attribute_names.at(idx_c)}),
+          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
+          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
+          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
           pos_getter);
       break;
     case Type::FLOAT:
-      handleOption<float>(
+      handle_option<float>(
           idx, inserted_keys.at(idx_c), inserted_indexes,
-          m_avl_indexes.at({table_name, attribute_names.at(idx_c)}),
-          m_sequential_indexes.at({table_name, attribute_names.at(idx_c)}),
-          m_isam_indexes.at({table_name, attribute_names.at(idx_c)}),
+          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
+          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
+          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
           pos_getter);
       break;
     case Type::VARCHAR:
-      handleOption<std::string>(
+      handle_option<std::string>(
           idx, inserted_keys.at(idx_c), inserted_indexes,
-          m_avl_indexes.at({table_name, attribute_names.at(idx_c)}),
-          m_sequential_indexes.at({table_name, attribute_names.at(idx_c)}),
-          m_isam_indexes.at({table_name, attribute_names.at(idx_c)}),
+          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
+          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
+          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
           pos_getter);
       break;
     case Type::BOOL:

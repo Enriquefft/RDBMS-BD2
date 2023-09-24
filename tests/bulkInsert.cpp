@@ -38,6 +38,11 @@ protected:
 TEST_F(BulkInsertTest, SimpleInsert) {
   const std::string QUERY =
       std::format("insert into {} from 'students_insert';", TEST_TABLE);
-  auto response = test_request(QUERY);
-  EXPECT_EQ(response.code, 200);
+  auto response_insert = test_request(QUERY);
+  EXPECT_EQ(response_insert.code, 200);
+
+  const std::string SELECT_QUERY = "SELECT * FROM test_table;";
+  auto response_select = test_request(SELECT_QUERY);
+  EXPECT_EQ(response_select.code, 200);
+  spdlog::info("{}", response_select.body);
 }
