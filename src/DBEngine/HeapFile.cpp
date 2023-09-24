@@ -103,8 +103,11 @@ auto HeapFile::bulk_insert(const std::vector<Record> &records)
 }
 
 auto HeapFile::next_pos() const -> pos_type {
+
   std::ifstream stream(m_table_path + DATA_FILE,
                        std::ios::binary | std::ios::in);
+
+  stream.seekg(0, std::ios::end);
 
   return static_cast<pos_type>(stream.tellg());
 }
