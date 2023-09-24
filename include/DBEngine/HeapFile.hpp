@@ -62,15 +62,13 @@ private:
     std::vector<Type> attribute_types;
     std::string primary_key;
     pos_type first_deleted{};
+    uint64_t record_count{};
 
     TableMetadata(std::vector<std::string> _attribute_names,
                   std::vector<Type> _attribute_types, std::string _primary_key);
 
     [[nodiscard]] auto
     get_attribute_idx(const std::string &attribute_name) const -> uint8_t;
-    [[nodiscard]] auto record_count() const -> std::size_t {
-      return attribute_types.size();
-    }
     auto size() -> uint64_t {
       return std::accumulate(
           attribute_types.begin(), attribute_types.end(),

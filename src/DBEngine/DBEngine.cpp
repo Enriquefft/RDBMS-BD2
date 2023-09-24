@@ -188,6 +188,8 @@ auto DBEngine::load(const std::string &table_name,
       std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
   query_time_t times{{"LOAD", duration}};
 
+  spdlog::info("Response size: {}", response.size());
+
   return m_tables_raw.at(table_name)
       .filter(response, selected_attributes, times);
 }

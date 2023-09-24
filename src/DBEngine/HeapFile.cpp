@@ -52,13 +52,12 @@ auto HeapFile::load() -> std::vector<Record> {
     spdlog::error("Could not open file {}", m_table_path + DATA_FILE);
   }
 
-  std::vector<Record> records(m_metadata.record_count());
+  std::vector<Record> records(m_metadata.record_count);
 
-  Record::size_type curr_record = 0;
-  while (
-      records.at(curr_record).read(m_file_stream, m_metadata.attribute_types)) {
-    spdlog::info("Reading record");
+  for (auto &record : records) {
+    record.read(m_file_stream, m_metadata.attribute_types);
   }
+
   m_file_stream.close();
   return records;
 }
@@ -86,8 +85,10 @@ auto HeapFile::bulk_insert(const std::vector<Record> &records)
     position = initial_pos + static_cast<std::streamoff>(i) * get_record_size();
     i++;
   }
-
   m_file_stream.close();
+
+  m_metadata.record_count += records.size();
+  write_metadata();
 
   return positions;
 }
