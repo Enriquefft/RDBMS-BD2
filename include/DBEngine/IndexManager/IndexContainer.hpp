@@ -38,9 +38,9 @@ struct IndexContainer {
 
   template <ValidType T>
   [[nodiscard]] auto search(T key) const
-      -> std::pair<std::streampos, response_time> {
+      -> std::pair<std::vector<std::streampos>, response_time> {
     auto idx_response = std::get<IndexType<T>>(m_idx).search(key);
-    return {idx_response.records.at(0), idx_response.query_time};
+    return {idx_response.records, idx_response.query_time};
   }
 
   template <ValidType T>
@@ -51,8 +51,6 @@ struct IndexContainer {
   }
 
   template <ValidType T>
-  // bulk_insert(const std::vector<std::pair<Data<KEY_TYPE>, physical_pos>>
-  // &data)
   auto bulk_insert(std::vector<std::pair<T, std::streampos>> &elements)
       -> std::pair<Response, std::vector<bool>> {
     spdlog::info("calling bulk_insert on idx");

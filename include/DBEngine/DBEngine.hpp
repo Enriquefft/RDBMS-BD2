@@ -30,7 +30,7 @@ enum Comp : uint8_t { EQUAL, GE, LE, G, L };
 class DBEngine {
 public:
   /// @brief Enum representing the available indexes
-  enum class Index_t : uint8_t { AVL, HASH, ISAM };
+  enum class Index_t : uint8_t { AVL, SEQUENTIAL, ISAM };
 
   /// @brief The constructor of the class DBEngine.
   /// @details Constructs the class and all the necesary filepaths
@@ -82,7 +82,8 @@ public:
   /// @param table_name The name of the table to add the value to.
   /// @param value The value to add to the table.
   /// @return True if the value was added, false otherwise.
-  auto add(const std::string &table_name, const Record &value) -> bool;
+  auto add(const std::string &table_name, const std::vector<std::string> &value)
+      -> bool;
 
   /// @brief Insert values from a csv_file into a table.
   /// @param table_name The name of the table to insert the values into.
@@ -104,6 +105,9 @@ public:
   /// @param key The key of the value to remove.
   /// @return True if the value was removed, false otherwise.
   auto remove(const std::string &table_name, const Attribute &key) -> bool;
+
+  void create_index(const std::string &table_name,
+                    const std::string &column_name, const Index_t &index_type);
 
   /// @brief Query if a table exists.
   /// @param table_name The name of the table to query.
