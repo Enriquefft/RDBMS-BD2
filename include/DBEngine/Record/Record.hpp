@@ -3,6 +3,7 @@
 
 // This file contins compile time constants and type definitions
 #include <limits>
+#include <ranges>
 #include <spdlog/spdlog.h>
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
@@ -82,7 +83,7 @@ struct Type {
       str += "VARCHAR";
       break;
     }
-    str += "Size: " + std::to_string(size) + '\n';
+    str += "\tSize: " + std::to_string(size) + '\n';
     return str;
   }
 };
@@ -102,11 +103,17 @@ struct Record {
 
   Record() = default;
 
+  explicit Record(auto split_view) {
+    for (auto field : split_view) {
+      m_fields.emplace_back(field.begin(), field.end());
+    }
+  }
+
   std::vector<std::vector<char>> m_fields;
   [[nodiscard]] auto begin() const { return m_fields.begin(); }
   [[nodiscard]] auto end() const { return m_fields.end(); }
 
-  auto write(std::fstream &file, const std::vector<Type> &types)
+  auto write(std::fstream &file, const std::vector<Type> &types) const
       -> std::ostream &;
   auto read(std::fstream &file, const std::vector<Type> &types)
       -> std::istream &;
@@ -115,7 +122,7 @@ struct Record {
 
 // https://en.cppreference.com/w/cpp/container/unordered_set
 struct RecordHash {
-  size_t operator()(const Record &record) const {
+  auto operator()(const Record &record) const -> size_t {
     size_t h = 0;
     for (const auto &field : record) {
       for (const auto &c : field) {
@@ -127,6 +134,7 @@ struct RecordHash {
 };
 
 using query_time_t = std::unordered_map<std::string, std::chrono::milliseconds>;
+
 struct QueryResponse {
   std::vector<Record> records;
   query_time_t query_times;
@@ -145,8 +153,10 @@ inline auto stob(std::string str) -> bool {
 template <typename Func>
 inline void cast_and_execute(Type::types type,
                              const std::string &attribute_value, Func func) {
+  spdlog::info("Casting {} ", attribute_value);
   switch (type) {
   case Type::types::INT: {
+    spdlog::info("Casting {} to int", attribute_value);
     int key_value = std::stoi(attribute_value);
     func(key_value);
     break;
@@ -169,11 +179,37 @@ inline void cast_and_execute(Type::types type,
 }
 
 template <typename Func>
+inline void key_cast_and_execute(Type::types type, std::string &attribute_value,
+                                 Func func) {
+  switch (type) {
+  case Type::types::INT: {
+    spdlog::info("Casting {} to int", attribute_value);
+    int key_value = std::stoi(attribute_value);
+    func(key_value);
+    break;
+  }
+  case Type::types::FLOAT: {
+    float key_value = std::stof(attribute_value);
+    func(key_value);
+    break;
+  }
+  case Type::types::BOOL: {
+    spdlog::error("Bool key is not supported");
+    break;
+  }
+  case Type::types::VARCHAR: {
+    func(attribute_value);
+    break;
+  }
+  }
+}
+template <typename Func>
 inline void key_cast_and_execute(Type::types type,
                                  const std::string &attribute_value,
                                  Func func) {
   switch (type) {
   case Type::types::INT: {
+    spdlog::info("Casting {} to int", attribute_value);
     int key_value = std::stoi(attribute_value);
     func(key_value);
     break;

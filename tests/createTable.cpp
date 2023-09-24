@@ -38,3 +38,24 @@ TEST_F(CreateTableTest, BasicCreate) {
   EXPECT_TRUE(engine.is_table(TEST_TABLE));
   EXPECT_EQ(response.code, 200);
 }
+
+TEST_F(CreateTableTest, PkCreate) {
+
+  const std::string QUERY =
+      std::format("CREATE TABLE {}(id char(30) primary key);", TEST_TABLE);
+
+  auto response = test_request(QUERY);
+  EXPECT_TRUE(engine.is_table(TEST_TABLE));
+  EXPECT_EQ(response.code, 200);
+}
+TEST_F(CreateTableTest, FullCreate) {
+
+  const std::string QUERY =
+      std::format("CREATE TABLE {}(id int primary key, nombre char(10), "
+                  "apellido char(20), aprobo_bd bool, score double);",
+                  TEST_TABLE);
+
+  auto response = test_request(QUERY);
+  EXPECT_TRUE(engine.is_table(TEST_TABLE));
+  EXPECT_EQ(response.code, 200);
+}

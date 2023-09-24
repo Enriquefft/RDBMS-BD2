@@ -4,6 +4,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
 add_library(Indexes INTERFACE)
 
+# add_subdirectory(Isam)
+
+# target_link_libraries(Indexes PUBLIC ISAM_TARGET_NAME)
+
 target_compile_features(Indexes INTERFACE cxx_std_20)
 target_include_directories(Indexes SYSTEM INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -17,7 +17,7 @@ namespace Constants {
 #define TABLES_PATH BASE_PATH "/Tables/"
 #define METADATA_PATH BASE_PATH "/Metadata/"
 #define INDEX_PATH BASE_PATH "/Indexes/"
-#define CSV_PATH BASE_PATH "/CSV/"
+#define CSV_PATH "SAMPLE_CSV/"
 
 #define DATA_FILE "data.bin"
 #define METADATA_FILE "metadata.bin"

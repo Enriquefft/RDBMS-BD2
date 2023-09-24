@@ -2,9 +2,11 @@
 #define INDEX_CONTAINER_HPP
 
 #include "IndexConcept.hpp"
-#include "Sequential/sequential_index.hpp"
-//#include "AVL/avl_index.hpp"
+#include <spdlog/spdlog.h>
 
+#include "AVL/avl_index.hpp"
+#include "Sequential/sequential_index.hpp"
+// #include "Isam/isam_index.hpp"
 
 template <template <typename> class IndexType>
   requires ValidIndex<IndexType>
@@ -53,6 +55,7 @@ struct IndexContainer {
   // &data)
   auto bulk_insert(std::vector<std::pair<T, std::streampos>> &elements)
       -> std::pair<Response, std::vector<bool>> {
+    spdlog::info("calling bulk_insert on idx");
     return std::get<IndexType<T>>(m_idx).bulk_insert(elements);
   }
 
@@ -64,10 +67,10 @@ struct SequentialIndexContainer : public IndexContainer<SequentialIndex> {
   SequentialIndexContainer(SequentialIndex<T> &idx)
       : IndexContainer<SequentialIndex>{idx} {}
 };
-struct AvlIndexContainer : public IndexContainer<SequentialIndex> {
+
+struct AvlIndexContainer : public IndexContainer<AVLIndex> {
   template <ValidIndexType T>
-  AvlIndexContainer(SequentialIndex<T> &idx)
-      : IndexContainer<SequentialIndex>{idx} {}
+  AvlIndexContainer(AVLIndex<T> &idx) : IndexContainer<AVLIndex>{idx} {}
 };
 struct IsamIndexContainer : public IndexContainer<SequentialIndex> {
   template <ValidIndexType T>

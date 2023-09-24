@@ -74,6 +74,10 @@ public:
                     const std::vector<std::string> &selected_attributes)
       -> QueryResponse;
 
+  auto load(const std::string &table_name,
+            const std::vector<std::string> &selected_attributes)
+      -> QueryResponse;
+
   /// @brief Add a new value to a table.
   /// @param table_name The name of the table to add the value to.
   /// @param value The value to add to the table.
@@ -118,6 +122,11 @@ public:
   /// table.
   auto get_indexes(const std::string &table_name) const -> std::vector<Index_t>;
 
+  /// @brief Sort the attributes to match the creation order
+  /// @param attributes vector to sort
+  void sort_attributes(const std::string &table_name,
+                       std::vector<std::string> &attributes) const;
+
   /// @brief Get the Indexes names asociated with a table.
   /// @param table_name The name of the table to get the indexes from.
   /// @return Vector of strings representing the attributes with indexes in the
@@ -144,6 +153,7 @@ public:
   void drop_table(const std::string &table_name);
 
   static void clean_table(const std::string &table_name);
+
 private:
   /// @brief Generate the directories necesary for the database.
   static void generate_directories();
