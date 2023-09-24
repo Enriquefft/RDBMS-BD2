@@ -68,9 +68,8 @@ public:
   /// @param end_key The end key of the range.
   /// @return A vector of strings containing all the values associated with the
   /// key.
-  auto range_search(const std::string &table_name, const Attribute &begin_key,
-                    const Attribute &end_key,
-                    const std::function<bool(Record)> &expr,
+  auto range_search(const std::string &table_name, Attribute begin_key,
+                    Attribute end_key, const std::function<bool(Record)> &expr,
                     const std::vector<std::string> &selected_attributes)
       -> QueryResponse;
 
