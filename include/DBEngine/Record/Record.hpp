@@ -102,6 +102,7 @@ struct Record {
   enum class Status : bool { DELETED = false, OK = true };
 
   Record() = default;
+  Status status = Status::OK;
 
   explicit Record(auto split_view) {
     for (auto field : split_view) {
