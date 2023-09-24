@@ -108,7 +108,6 @@ auto HeapFile::next_pos() const -> pos_type {
                        std::ios::binary | std::ios::in);
 
   stream.seekg(0, std::ios::end);
-
   return static_cast<pos_type>(stream.tellg());
 }
 

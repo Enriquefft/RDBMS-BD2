@@ -63,7 +63,7 @@ auto Record::write(std::fstream &file, const std::vector<Type> &types) const
       spdlog::info("writing string: {}", str);
 
       // str must be of size field_size
-      str.resize(field_size, '\0');
+      str.resize(field_size, ' ');
       spdlog::info("writing trimmed string: {}", str);
 
       std::memcpy(tmp_buffer.get() + buffer_current_pos, str.data(),
@@ -135,7 +135,7 @@ auto Record::read(std::fstream &file, const std::vector<Type> &types)
     }
     case Type::VARCHAR: {
       std::string read_value(field_size,
-                             '\0'); // Resize the string to field_size
+                             ' '); // Resize the string to field_size
       std::memcpy(read_value.data(), tmp_buffer.get() + curr_buffer_pos,
                   field_size);
 

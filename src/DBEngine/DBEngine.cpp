@@ -319,98 +319,78 @@ void DBEngine::create_index(const std::string &table_name,
     throw std::invalid_argument("Bool can't be indexed");
   }
 
-  // key_cast_and_execute(
-  //     TYPE.type, get_sample_value(TYPE),
-  //     [&index_type, &table_name, &column_name, this, &TYPE](auto value) {
-  //       using att_type = decltype(value);
-  //
-  //       std::vector<std::pair<att_type, std::streampos>> key_values;
-  //       auto all_records = load(table_name, {column_name}).records;
-  //       std::transform(all_records.begin(), all_records.end(),
-  //                      key_values.begin(), [&TYPE](auto record) {
-  //                        auto str_val = record.m_fields.at(0);
-  //                        auto str_value =
-  //                            std::string(str_val.begin(), str_val.end());
-  //
-  //                        std::pair<att_type, std::streampos> return_v;
-  //
-  //                        switch (TYPE.type) {
-  //
-  //                        case Type::BOOL:
-  //                          return_v = {stob(str_value), 1};
-  //                          break;
-  //                        case Type::INT:
-  //                          return_v = {std::stoi(str_value), 4};
-  //                          break;
-  //
-  //                        case Type::FLOAT:
-  //                          return_v = {std::stof(str_value), 4};
-  //                          break;
-  //                        case Type::VARCHAR:
-  //                          break;
-  //                        }
-  //                        return return_v;
-  //
-  //                        //   key_cast_and_execute(
-  //                        //       TYPE.type, str_value,
-  //                        //       [&record, &return_v](auto casted_value) {
-  //                        //         return_v =
-  //                        //             // error: cannot bind rvalue
-  //                        reference
-  //                        //             of
-  //                        //             // type ‘int&&’ to lvalue of type
-  //                        ‘int’
-  //                        //             std::make_pair<att_type,
-  //                        //             std::streampos>(
-  //                        //                 std::move(casted_value), 4);
-  //                        //       });
-  //                        //   return return_v;
-  //                      });
-  //
-  //       switch (index_type) {
-  //       case Index_t::AVL: {
-  //
-  //         if (m_avl_indexes.contains({table_name, column_name})) {
-  //           spdlog::warn("Index already exists");
-  //         }
-  //         throw std::invalid_argument("Index already exists");
-  //
-  //         m_avl_indexes.emplace(std::make_pair(
-  //             std::make_pair(table_name, column_name),
-  //             AVLIndex<att_type>(table_name, column_name, false)));
-  //         m_avl_indexes.at({table_name, column_name})
-  //             .bulk_insert<att_type>(key_values);
-  //         break;
-  //       }
-  //       case Index_t::SEQUENTIAL: {
-  //         if (m_avl_indexes.contains({table_name, column_name})) {
-  //           spdlog::warn("Index already exists");
-  //         }
-  //         throw std::invalid_argument("Index already exists");
-  //
-  //         m_sequential_indexes.emplace(std::make_pair(
-  //             std::make_pair(table_name, column_name),
-  //             SequentialIndex<att_type>(table_name, column_name, false)));
-  //         m_sequential_indexes.at({table_name, column_name})
-  //             .bulk_insert<att_type>(key_values);
-  //         break;
-  //         break;
-  //       }
-  //       case Index_t::ISAM: {
-  //         if (m_avl_indexes.contains({table_name, column_name})) {
-  //           spdlog::warn("Index already exists");
-  //         }
-  //         throw std::invalid_argument("Index already exists");
-  //
-  //         m_isam_indexes.emplace(std::make_pair(
-  //             std::make_pair(table_name, column_name),
-  //             SequentialIndex<att_type>(table_name, column_name, false)));
-  //         m_isam_indexes.at({table_name, column_name})
-  //             .bulk_insert<att_type>(key_values);
-  //         break;
-  //       }
-  //       }
-  //     });
+  key_cast_and_execute(
+      TYPE.type, get_sample_value(TYPE),
+      [&index_type, &table_name, &column_name, this, &TYPE](auto value) {
+        using att_type = decltype(value);
+
+        std::vector<std::pair<att_type, std::streampos>> key_values;
+        auto all_records = load(table_name, {column_name}).records;
+        std::transform(all_records.begin(), all_records.end(),
+                       key_values.begin(), [&TYPE](auto record) {
+                         auto str_val = record.m_fields.at(0);
+                         auto str_value =
+                             std::string(str_val.begin(), str_val.end());
+
+                         std::pair<att_type, std::streampos> return_v;
+
+                         switch (TYPE.type) {
+
+                         case Type::BOOL:
+                           return_v = {DB_ENGINE::stob(str_value), 1};
+                           break;
+                         case Type::INT:
+                           return_v = {std::stoi(str_value), 4};
+                           break;
+
+                         case Type::FLOAT:
+                           return_v = {std::stof(str_value), 4};
+                           break;
+                         case Type::VARCHAR:
+                           break;
+                         }
+                         return return_v;
+                       });
+
+        switch (index_type) {
+        case Index_t::AVL: {
+
+          if (m_avl_indexes.contains({table_name, column_name})) {
+            spdlog::warn("Index already exists");
+            throw std::invalid_argument("Index already exists");
+          }
+          AVLIndex<att_type> idx(table_name, column_name, false);
+          m_avl_indexes.emplace(Index(table_name, column_name), idx);
+          m_avl_indexes.at({table_name, column_name})
+              .bulk_insert<att_type>(key_values);
+          break;
+        }
+        case Index_t::SEQUENTIAL: {
+          if (m_avl_indexes.contains({table_name, column_name})) {
+            spdlog::warn("Index already exists");
+            throw std::invalid_argument("Index already exists");
+          }
+
+          SequentialIndex<att_type> idx(table_name, column_name, false);
+          m_sequential_indexes.emplace(Index(table_name, column_name), idx);
+          m_sequential_indexes.at({table_name, column_name})
+              .bulk_insert<att_type>(key_values);
+          break;
+        }
+        case Index_t::ISAM: {
+          if (m_avl_indexes.contains({table_name, column_name})) {
+            spdlog::warn("Index already exists");
+            throw std::invalid_argument("Index already exists");
+          }
+          SequentialIndex<att_type> idx(table_name, column_name, false);
+          m_isam_indexes.emplace(Index(table_name, column_name), idx);
+          m_isam_indexes.at({table_name, column_name})
+              .bulk_insert<att_type>(key_values);
+
+          break;
+        }
+        }
+      });
 }
 
 enum class INDEX_OPTION : uint8_t {
