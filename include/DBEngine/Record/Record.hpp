@@ -110,7 +110,7 @@ struct Record {
     }
   }
 
-  std::vector<std::vector<char>> m_fields;
+  std::vector<std::string> m_fields;
   [[nodiscard]] auto begin() const { return m_fields.begin(); }
   [[nodiscard]] auto end() const { return m_fields.end(); }
 

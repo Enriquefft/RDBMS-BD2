@@ -142,7 +142,7 @@ auto Record::read(std::fstream &file, const std::vector<Type> &types)
       spdlog::info("Read value: {}", read_value);
 
       // stack-use-after-return HERE
-      std::vector val(read_value.begin(), read_value.end());
+      std::string val(read_value.begin(), read_value.end());
       m_fields.at(i) = val;
 
       break;
