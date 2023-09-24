@@ -8,6 +8,7 @@
 namespace Index {
 template <typename KEY_TYPE> class Index {
 protected:
+  std::string directory = "./DB_FILES/Indexes";
   std::string attribute_name;
   std::string table_name;
   std::string index_name;
