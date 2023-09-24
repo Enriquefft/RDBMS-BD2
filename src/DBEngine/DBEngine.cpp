@@ -428,6 +428,7 @@ static auto get_sample_value(DB_ENGINE::Type type) -> std::string {
   case DB_ENGINE::Type::VARCHAR:
     return "a";
   }
+  throw std::runtime_error("Invalid type");
 }
 
 template <typename T>
