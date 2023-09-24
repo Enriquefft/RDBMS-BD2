@@ -23,6 +23,7 @@ namespace DB_ENGINE {
 struct Attribute {
   std::string name;
   std::string value;
+  friend auto operator<=>(const Attribute &, const Attribute &) = default;
 };
 
 struct Index {
@@ -180,31 +181,6 @@ inline void cast_and_execute(Type::types type,
 }
 
 template <typename Func>
-inline void key_cast_and_execute(Type::types type, std::string &attribute_value,
-                                 Func func) {
-  switch (type) {
-  case Type::types::INT: {
-    spdlog::info("Casting {} to int", attribute_value);
-    int key_value = std::stoi(attribute_value);
-    func(key_value);
-    break;
-  }
-  case Type::types::FLOAT: {
-    float key_value = std::stof(attribute_value);
-    func(key_value);
-    break;
-  }
-  case Type::types::BOOL: {
-    spdlog::error("Bool key is not supported");
-    break;
-  }
-  case Type::types::VARCHAR: {
-    func(attribute_value);
-    break;
-  }
-  }
-}
-template <typename Func>
 inline void key_cast_and_execute(Type::types type,
                                  const std::string &attribute_value,
                                  Func func) {
@@ -224,10 +200,13 @@ inline void key_cast_and_execute(Type::types type,
     spdlog::error("Bool key is not supported");
     break;
   }
-  case Type::types::VARCHAR: {
-    func(attribute_value);
+  // case Type::types::VARCHAR: {
+  //   func(attribute_value);
+  //   break;
+  // }
+  // }
+  case Type::types::VARCHAR:
     break;
-  }
   }
 }
 

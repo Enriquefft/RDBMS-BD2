@@ -153,16 +153,41 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
   return m_tables_raw.at(table_name)
       .filter(response, selected_attributes, times);
 }
-auto DBEngine::range_search(const std::string &table_name,
-                            const Attribute &begin_key,
-                            const Attribute &end_key,
+auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
+                            Attribute end_key,
                             const std::function<bool(Record)> &expr,
                             const std::vector<std::string> &selected_attributes)
     -> QueryResponse {
 
-  if (begin_key.name != end_key.name) {
-    throw std::runtime_error("Cant apply range_search to different attributes");
+  if (begin_key == KEY_LIMITS::MIN && end_key == KEY_LIMITS::MAX) {
+    QueryResponse response = load(table_name, selected_attributes);
+
+    response.records.erase(
+        std::remove_if(response.records.begin(), response.records.end(),
+                       [&expr](const Record &obj) { return !expr(obj); }),
+        response.records.end());
   }
+
+  if (begin_key.name != end_key.name) {
+
+    if ((end_key != KEY_LIMITS::MIN && end_key != KEY_LIMITS::MAX) &&
+        (begin_key != KEY_LIMITS::MIN && begin_key != KEY_LIMITS::MAX)) {
+      throw std::runtime_error(
+          "Cant apply range_search to different attributes");
+    }
+  }
+
+  if (begin_key == KEY_LIMITS::MAX) {
+    begin_key.value = std::to_string(std::numeric_limits<int>::max());
+    begin_key.name = end_key.name;
+  }
+  if (begin_key == KEY_LIMITS::MIN) {
+    begin_key.value = std::to_string(std::numeric_limits<int>::min());
+    begin_key.name = end_key.name;
+  }
+
+  spdlog::info("Range search names: {}, {}", begin_key.name, end_key.name);
+  spdlog::info("Range search values: {}, {}", begin_key.value, end_key.value);
 
   std::vector<HeapFile::pos_type> positions;
   query_time_t times;
@@ -217,6 +242,8 @@ auto DBEngine::load(const std::string &table_name,
 auto DBEngine::add(const std::string &table_name,
                    const std::vector<std::string> &value) -> bool {
 
+  spdlog::info("Calling add");
+
   Record rec(value);
 
   bool inserted = false;
@@ -224,13 +251,19 @@ auto DBEngine::add(const std::string &table_name,
   auto [type, key] = m_tables_raw.at(table_name).get_key(rec);
 
   auto inserted_pos = m_tables_raw.at(table_name).next_pos();
+
   response_time time;
 
   for (auto &idx : m_sequential_indexes) {
     if (idx.first.table == table_name && idx.first.attribute_name == key.name) {
+
+      spdlog::info("value to cast: {}", key.value);
+
       key_cast_and_execute(
           type.type, key.value,
           [&idx, &inserted_pos, &inserted, &time](auto key_val) {
+            spdlog::info("adding to sequential: {} {}", key_val,
+                         static_cast<std::streamoff>(inserted_pos));
             auto add_response = idx.second.add(key_val, inserted_pos);
             inserted = add_response.first;
             time = add_response.second;
@@ -606,11 +639,20 @@ void DBEngine::csv_insert(const std::string &table_name,
 
   std::jthread pk_insertion;
 
-  key_cast_and_execute(key_type.type, key_value, [&](auto pk_value) {
+  key_cast_and_execute(key_type.type, key_value, [&](auto sample) {
     // Iterate records
-    using pk_type = decltype(pk_value);
+    using pk_type = decltype(sample);
+
+    if (std::is_same_v<int, pk_type>) {
+      spdlog::info("inserting with key==int");
+    }
 
     std::vector<std::pair<pk_type, std::streampos>> pk_values;
+
+    if (std::is_same_v<std::vector<std::pair<int, std::streampos>>,
+                       decltype(pk_values)>) {
+      spdlog::info("inserting into pk_values ==vec int");
+    }
 
     auto pk_init_size = SequentialIndex<pk_type>::MIN_BULK_INSERT_SIZE::value /
                         sizeof(std::pair<pk_type, HeapFile::pos_type>);
@@ -627,14 +669,45 @@ void DBEngine::csv_insert(const std::string &table_name,
 
         insert_field(field, curr_field, field_types, inserted_keys);
 
-        // Division by 0 here
         if (curr_field == primary_key_idx) {
+
           key_value = std::string(field.begin(), field.end());
-          pk_values.emplace_back(std::make_pair(pk_value, pos_getter()));
+
+          switch (key_type.type) {
+
+          case Type::BOOL: {
+            spdlog::warn("Bool can't be pk");
+            break;
+          }
+
+          case Type::INT: {
+            std::pair<int, std::streampos> i =
+                std::make_pair(stoi(key_value), pos_getter());
+            pk_values.push_back(i);
+            break;
+          }
+
+          case Type::FLOAT: {
+            std::pair<float, std::streampos> i =
+                std::make_pair(stof(key_value), pos_getter());
+            pk_values.push_back(i);
+            break;
+          }
+
+            // case Type::VARCHAR: {
+            //   std::pair<std::string, std::streampos> i =
+            //       std::make_pair(key_value, pos_getter());
+            //
+            //   pk_values.push_back(i);
+            //
+            //   break;
+            // }
+          }
 
           if (curr_field > pk_init_size) {
             pk_insertion = std::jthread([&inserted_indexes, &table_name,
                                          &key_name, &pk_values, this]() {
+              spdlog::info("Bulk inserting pk - 1");
               auto bulk_insert_response =
                   m_sequential_indexes.at({table_name, key_name})
                       .bulk_insert<pk_type>(pk_values);
@@ -653,7 +726,13 @@ void DBEngine::csv_insert(const std::string &table_name,
       pk_insertion.join();
     }
 
-    spdlog::info("Inserting into primary key index n° {}", pk_values.size());
+    spdlog::info("Inserting into primary key index n° - rest {}",
+                 pk_values.size());
+
+    for (const auto &elem : pk_values) {
+      std::cout << elem.first << ' ' << elem.second << '\n';
+    }
+
     auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
                               .bulk_insert<pk_type>(pk_values)
                               .second;

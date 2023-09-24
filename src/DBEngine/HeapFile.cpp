@@ -62,7 +62,16 @@ auto HeapFile::load() -> std::vector<Record> {
   return records;
 }
 
-auto HeapFile::add(const Record & /*record*/) -> pos_type { return {}; }
+auto HeapFile::add(const Record &record) -> pos_type {
+  m_file_stream.open(m_table_path + DATA_FILE,
+                     std::ios::binary | std::ios::out);
+  auto initial_pos = next_pos();
+  m_file_stream.seekp(initial_pos, std::ios::beg);
+  record.write(m_file_stream, m_metadata.attribute_types);
+  auto response = m_file_stream.tellp();
+  m_file_stream.close();
+  return response;
+}
 
 auto HeapFile::bulk_insert(const std::vector<Record> &records)
     -> std::vector<pos_type> {
@@ -93,7 +102,12 @@ auto HeapFile::bulk_insert(const std::vector<Record> &records)
   return positions;
 }
 
-auto HeapFile::next_pos() const -> pos_type { return {}; }
+auto HeapFile::next_pos() const -> pos_type {
+  std::ifstream stream(m_table_path + DATA_FILE,
+                       std::ios::binary | std::ios::in);
+
+  return static_cast<pos_type>(stream.tellg());
+}
 
 auto HeapFile::read(const pos_type &pos) -> Record {
   m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
@@ -108,7 +122,22 @@ auto HeapFile::read(const pos_type &pos) -> Record {
   return record;
 }
 
-auto HeapFile::remove(const pos_type & /*pos*/) -> bool { return {}; }
+auto HeapFile::remove(const pos_type &pos) -> bool {
+  m_file_stream.open(m_table_path + DATA_FILE,
+                     std::ios::binary | std::ios::out);
+  m_file_stream.seekg(pos, std::ios::beg);
+
+  Record record;
+  auto &succes = record.read(m_file_stream, m_metadata.attribute_types);
+  record.status = DELETED;
+
+  m_file_stream.seekg(pos, std::ios::beg);
+  record.write(m_file_stream, m_metadata.attribute_types);
+
+  m_file_stream.close();
+
+  return succes.good();
+}
 
 void HeapFile::update_first_deleted(pos_type pos) {
   m_metadata.first_deleted = pos;
@@ -241,13 +270,12 @@ auto HeapFile::get_key(const Record &record) const
     -> std::pair<Type, Attribute> {
 
   auto key_idx = m_metadata.get_attribute_idx(m_metadata.primary_key);
-
   auto key_type = m_metadata.attribute_types.at(key_idx);
 
-  std::string key_value =
-      string_cast(key_type, record.m_fields.at(key_idx).data());
+  spdlog::info("ke_str: {}", record.m_fields.at(key_idx));
 
-  Attribute key_attribute = {m_metadata.attribute_names.at(key_idx), key_value};
+  Attribute key_attribute = {m_metadata.attribute_names.at(key_idx),
+                             record.m_fields.at(key_idx)};
 
   return {key_type, key_attribute};
 }
