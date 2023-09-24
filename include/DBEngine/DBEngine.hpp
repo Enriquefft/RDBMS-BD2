@@ -75,7 +75,8 @@ public:
       -> QueryResponse;
 
   auto load(const std::string &table_name,
-            const std::vector<std::string> &selected_attributes);
+            const std::vector<std::string> &selected_attributes)
+      -> QueryResponse;
 
   /// @brief Add a new value to a table.
   /// @param table_name The name of the table to add the value to.

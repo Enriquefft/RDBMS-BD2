@@ -35,7 +35,7 @@ struct ApiResponse {
 
     wvalue response;
     response["existingTables"] = existingTables;
-    response["query_times"] = queryData;
+    response["queryData"] = queryData;
     response["execution_time"] = executionTime;
     return response.dump();
   }

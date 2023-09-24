@@ -113,7 +113,7 @@ struct Record {
   [[nodiscard]] auto begin() const { return m_fields.begin(); }
   [[nodiscard]] auto end() const { return m_fields.end(); }
 
-  auto write(std::fstream &file, const std::vector<Type> &types)
+  auto write(std::fstream &file, const std::vector<Type> &types) const
       -> std::ostream &;
   auto read(std::fstream &file, const std::vector<Type> &types)
       -> std::istream &;

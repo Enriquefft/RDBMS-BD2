@@ -3,6 +3,7 @@
 #include "Record/Record.hpp"
 #include "Utils/File.hpp"
 
+#include <iostream>
 #include <numeric>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
@@ -39,13 +40,26 @@ HeapFile::TableMetadata::TableMetadata(
 
 auto HeapFile::load() -> std::vector<Record> {
 
+  spdlog::info("Loading all data");
+
   m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
+
+  if (std::filesystem::exists(m_table_path + DATA_FILE)) {
+    spdlog::info("File {} exists", m_table_path + DATA_FILE);
+  }
+
+  if (!m_file_stream) {
+    spdlog::error("Could not open file {}", m_table_path + DATA_FILE);
+  }
+
   std::vector<Record> records(m_metadata.record_count());
 
   Record::size_type curr_record = 0;
   while (
       records.at(curr_record).read(m_file_stream, m_metadata.attribute_types)) {
+    spdlog::info("Reading record");
   }
+  m_file_stream.close();
   return records;
 }
 
@@ -53,13 +67,29 @@ auto HeapFile::add(const Record & /*record*/) -> pos_type { return {}; }
 
 auto HeapFile::bulk_insert(const std::vector<Record> &records)
     -> std::vector<pos_type> {
-  spdlog::info("Bulk inserting {} records", records.size());
 
-  spdlog::info("Record:");
+  spdlog::info("Bulk inserting on heap file");
+
+  m_file_stream.open(m_table_path + DATA_FILE,
+                     std::ios::binary | std::ios::out);
+  auto initial_pos = next_pos();
+  m_file_stream.seekp(initial_pos, std::ios::beg);
+
   for (const auto &rec : records) {
-    spdlog::info(rec_to_string(rec));
+    std::cout << "Inserting record at pos " << m_file_stream.tellp() << '\n';
+    rec.write(m_file_stream, m_metadata.attribute_types);
   }
-  return {};
+
+  std::vector<pos_type> positions(records.size());
+
+  for (auto i = 0; auto &position : positions) {
+    position = initial_pos + static_cast<std::streamoff>(i) * get_record_size();
+    i++;
+  }
+
+  m_file_stream.close();
+
+  return positions;
 }
 
 auto HeapFile::next_pos() const -> pos_type { return {}; }
@@ -72,6 +102,7 @@ auto HeapFile::read(const pos_type &pos) -> Record {
   Record record;
 
   record.read(m_file_stream, m_metadata.attribute_types);
+  m_file_stream.close();
 
   return record;
 }

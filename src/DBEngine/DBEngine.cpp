@@ -177,7 +177,8 @@ auto DBEngine::range_search(const std::string &table_name,
 }
 
 auto DBEngine::load(const std::string &table_name,
-                    const std::vector<std::string> &selected_attributes) {
+                    const std::vector<std::string> &selected_attributes)
+    -> QueryResponse {
 
   auto start = std::chrono::high_resolution_clock::now();
   auto response = m_tables_raw.at(table_name).load();
