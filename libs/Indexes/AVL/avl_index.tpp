@@ -1,9 +1,10 @@
 #ifndef AVL_INDEX_CPP
 #define AVL_INDEX_CPP
 
-#include "../response.hpp"
-#include "AVL/avl_index.hpp"
+#include "avl_index.hpp"
 #include <cstdint>
+
+using Index::Response;
 
 template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::initFile() {
   file.open(this->indexFileName, std::ios::in | std::ios::binary);
@@ -52,7 +53,7 @@ template <typename KEY_TYPE>
 void AVLIndex<KEY_TYPE>::insert(physical_pos cPointer,
                                 AVLIndexNode<KEY_TYPE> &cNode,
                                 AVLIndexNode<KEY_TYPE> &iNode,
-                                Response &response) {
+                                Response &response) const {
   if (cPointer == -1) {
     file.seekp(sizeof(AVLIndexHeader), std::ios::beg);
 
@@ -143,7 +144,7 @@ void AVLIndex<KEY_TYPE>::insert(physical_pos cPointer,
 
 //*
 template <typename KEY_TYPE>
-void AVLIndex<KEY_TYPE>::balance(physical_pos nodePointer) {
+void AVLIndex<KEY_TYPE>::balance(physical_pos nodePointer) const {
   if (nodePointer == -1) {
     return;
   }
@@ -171,7 +172,7 @@ void AVLIndex<KEY_TYPE>::balance(physical_pos nodePointer) {
 
 //*
 template <typename KEY_TYPE>
-void AVLIndex<KEY_TYPE>::leftRotation(physical_pos nodePointer) {
+void AVLIndex<KEY_TYPE>::leftRotation(physical_pos nodePointer) const {
   AVLIndexNode<KEY_TYPE> a, b;
   file.seekg(nodePointer, std::ios::beg);
   file.read(reinterpret_cast<char *>(&a), sizeof(AVLIndexNode<KEY_TYPE>));
@@ -200,7 +201,7 @@ void AVLIndex<KEY_TYPE>::leftRotation(physical_pos nodePointer) {
 
 //*
 template <typename KEY_TYPE>
-void AVLIndex<KEY_TYPE>::rightRotation(physical_pos nodePointer) {
+void AVLIndex<KEY_TYPE>::rightRotation(physical_pos nodePointer) const {
   AVLIndexNode<KEY_TYPE> a, b;
   file.seekg(nodePointer, std::ios::beg);
   file.read(reinterpret_cast<char *>(&a), sizeof(AVLIndexNode<KEY_TYPE>));
@@ -228,7 +229,7 @@ void AVLIndex<KEY_TYPE>::rightRotation(physical_pos nodePointer) {
 
 //* IS BALANCED
 template <typename KEY_TYPE>
-bool AVLIndex<KEY_TYPE>::isBalanced(physical_pos nodePointer) {
+bool AVLIndex<KEY_TYPE>::isBalanced(physical_pos nodePointer) const {
   if (nodePointer == -1) {
     return true;
   }
@@ -240,7 +241,7 @@ bool AVLIndex<KEY_TYPE>::isBalanced(physical_pos nodePointer) {
 
 //* BALANCING FACTOR
 template <typename KEY_TYPE>
-int AVLIndex<KEY_TYPE>::balancingFactor(physical_pos nodePointer) {
+int AVLIndex<KEY_TYPE>::balancingFactor(physical_pos nodePointer) const {
   if (nodePointer == -1) {
     return 0;
   }
@@ -252,7 +253,7 @@ int AVLIndex<KEY_TYPE>::balancingFactor(physical_pos nodePointer) {
 
 //* UPDATE-HEIGHT FUNCTION
 template <typename KEY_TYPE>
-void AVLIndex<KEY_TYPE>::updateHeigth(physical_pos nodePointer) {
+void AVLIndex<KEY_TYPE>::updateHeigth(physical_pos nodePointer) const {
   if (nodePointer == -1) {
     return;
   }
@@ -270,7 +271,7 @@ void AVLIndex<KEY_TYPE>::updateHeigth(physical_pos nodePointer) {
 
 //* HEIGHT FUNCTION
 template <typename KEY_TYPE>
-long AVLIndex<KEY_TYPE>::height(physical_pos nodePointer) {
+long AVLIndex<KEY_TYPE>::height(physical_pos nodePointer) const {
   if (nodePointer == -1) {
     return -1;
   }
@@ -284,7 +285,7 @@ long AVLIndex<KEY_TYPE>::height(physical_pos nodePointer) {
 template <typename KEY_TYPE>
 AVLIndexNode<KEY_TYPE> AVLIndex<KEY_TYPE>::search(physical_pos currentPointer,
                                                   AVLIndexNode<KEY_TYPE> &cNode,
-                                                  Data<KEY_TYPE> &item) {
+                                                  Data<KEY_TYPE> &item) const {
   if (currentPointer == -1) {
     throw std::runtime_error("No se ha encontrado el elemento!");
   }
@@ -302,7 +303,7 @@ AVLIndexNode<KEY_TYPE> AVLIndex<KEY_TYPE>::search(physical_pos currentPointer,
 
 //*
 template <typename KEY_TYPE>
-physical_pos AVLIndex<KEY_TYPE>::maxNode(physical_pos nodePointer) {
+physical_pos AVLIndex<KEY_TYPE>::maxNode(physical_pos nodePointer) const {
   if (nodePointer == -1) {
     throw std::runtime_error("El arbol está vacío!");
   }
@@ -322,7 +323,7 @@ physical_pos AVLIndex<KEY_TYPE>::maxNode(physical_pos nodePointer) {
 template <typename KEY_TYPE>
 bool AVLIndex<KEY_TYPE>::erase(physical_pos cPointer, physical_pos pPointer,
                                AVLIndexNode<KEY_TYPE> &cNode,
-                               Data<KEY_TYPE> item, Response &response) {
+                               Data<KEY_TYPE> item, Response &response) const {
   if (cPointer == -1) {
     return false;
   }
@@ -456,7 +457,7 @@ template <typename KEY_TYPE>
 void AVLIndex<KEY_TYPE>::fixValue(physical_pos cPointer,
                                   AVLIndexNode<KEY_TYPE> &cNode,
                                   Data<KEY_TYPE> &item1,
-                                  AVLIndexNode<KEY_TYPE> &tempNode) {
+                                  AVLIndexNode<KEY_TYPE> &tempNode) const {
   if (cPointer == -1) {
     return;
   }
@@ -483,7 +484,7 @@ void AVLIndex<KEY_TYPE>::fixValue(physical_pos cPointer,
 //*
 template <typename KEY_TYPE>
 void AVLIndex<KEY_TYPE>::displayPretty(const std::string &prefix,
-                                       physical_pos cPointer, bool isLeft) {
+                                       physical_pos cPointer, bool isLeft) const {
   if (cPointer == -1) {
     return;
   }
@@ -508,7 +509,7 @@ template <typename KEY_TYPE>
 void AVLIndex<KEY_TYPE>::rangeSearch(physical_pos cPointer,
                                      AVLIndexNode<KEY_TYPE> &cNode,
                                      Response &response, Data<KEY_TYPE> &begin,
-                                     Data<KEY_TYPE> &end) {
+                                     Data<KEY_TYPE> &end) const {
   if (cPointer == -1) {
     return;
   }
@@ -536,7 +537,7 @@ void AVLIndex<KEY_TYPE>::rangeSearch(physical_pos cPointer,
 
 //* ADD OPERATION
 template <typename KEY_TYPE>
-Response AVLIndex<KEY_TYPE>::add(Data<KEY_TYPE> data, physical_pos raw_pos) {
+Response AVLIndex<KEY_TYPE>::add(Data<KEY_TYPE> data, physical_pos raw_pos) const {
   Response response;
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
@@ -567,7 +568,7 @@ Response AVLIndex<KEY_TYPE>::add(Data<KEY_TYPE> data, physical_pos raw_pos) {
 
 //* SEARCH OPERATION
 template <typename KEY_TYPE>
-Response AVLIndex<KEY_TYPE>::search(Data<KEY_TYPE> item) {
+Response AVLIndex<KEY_TYPE>::search(Data<KEY_TYPE> item) const {
   Response response;
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
@@ -596,7 +597,7 @@ Response AVLIndex<KEY_TYPE>::search(Data<KEY_TYPE> item) {
 
 //* ERASE
 template <typename KEY_TYPE>
-Response AVLIndex<KEY_TYPE>::erase(Data<KEY_TYPE> item) {
+Response AVLIndex<KEY_TYPE>::remove(Data<KEY_TYPE> item) const {
   Response response;
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
@@ -624,8 +625,8 @@ Response AVLIndex<KEY_TYPE>::erase(Data<KEY_TYPE> item) {
 
 //*
 template <typename KEY_TYPE>
-Response AVLIndex<KEY_TYPE>::rangeSearch(Data<KEY_TYPE> start,
-                                         Data<KEY_TYPE> end) {
+Response AVLIndex<KEY_TYPE>::range_search(Data<KEY_TYPE> start,
+                                         Data<KEY_TYPE> end) const {
   Response response;
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
@@ -647,7 +648,7 @@ Response AVLIndex<KEY_TYPE>::rangeSearch(Data<KEY_TYPE> start,
   return response;
 };
 
-template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::displayPretty() {
+template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::displayPretty() const {
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
   if (!file.is_open()) {
@@ -663,7 +664,48 @@ template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::displayPretty() {
   file.close();
 };
 
-template <typename KEY_TYPE> std::string AVLIndex<KEY_TYPE>::get_index_name() {
+template <typename KEY_TYPE>
+std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
+    const std::vector<std::pair<Data<KEY_TYPE>, physical_pos>> &records) const {
+      Response response;
+      response.startTimer();
+
+      try {
+
+        if (records.empty()) {
+          response.stopTimer();
+          return {response, {}};
+        }
+
+        file.open(this->indexFileName,
+            std::ios::in | std::ios::out | std::ios::binary);
+        if (!file.is_open()) {
+          throw std::runtime_error("No se pudo abrir el archivo AVLIndex!");
+        }
+
+        auto record_copy = records;
+
+        for (auto &record : record_copy) {
+          AVLIndexNode<KEY_TYPE> insertNode;
+          insertNode.data = record.first;
+          insertNode.raw_pos = record.second;
+          AVLIndexNode<KEY_TYPE> currentNode;
+
+          insert(header.rootPointer, currentNode, insertNode, response);
+        }
+
+        file.close();
+
+      } catch (...) {
+        file.close();
+        response.stopTimer();
+        throw std::runtime_error("Couldn't load records");
+      }
+      response.stopTimer();
+      return {response, {}}; 
+};
+
+template <typename KEY_TYPE> std::string AVLIndex<KEY_TYPE>::get_index_name() const {
   return this->index_name;
 }
 
