@@ -9,16 +9,18 @@
 
 template <typename KEY_TYPE = default_data_type>
 class AVLIndex : public Index::Index<KEY_TYPE> {
-  AVLIndexHeader header;
+
+  mutable AVLIndexHeader header;
+
   std::string indexFileName;
-  static std::fstream file;
+  inline static std::fstream file;
 
   void initFile();
 
   void initIndex();
 
   void insert(physical_pos cPointer, AVLIndexNode<KEY_TYPE> &cNode,
-              AVLIndexNode<KEY_TYPE> &iNode, Response &response) const;
+              AVLIndexNode<KEY_TYPE> &iNode, Index::Response &response) const;
 
   void balance(physical_pos nodePointer) const;
 
@@ -42,7 +44,7 @@ class AVLIndex : public Index::Index<KEY_TYPE> {
 
   bool erase(physical_pos cPointer, physical_pos pPointer,
              AVLIndexNode<KEY_TYPE> &cNode, Data<KEY_TYPE> item,
-             Response &response) const;
+             Index::Response &response) const;
 
   void fixValue(physical_pos cPointer, AVLIndexNode<KEY_TYPE> &cNode,
                 Data<KEY_TYPE> &item1, AVLIndexNode<KEY_TYPE> &tempNode) const;
@@ -51,12 +53,12 @@ class AVLIndex : public Index::Index<KEY_TYPE> {
                      bool isLeft) const;
 
   void rangeSearch(physical_pos cPointer, AVLIndexNode<KEY_TYPE> &cNode,
-                   Response &response, Data<KEY_TYPE> &begin,
+                   Index::Response &response, Data<KEY_TYPE> &begin,
                    Data<KEY_TYPE> &end) const;
 
 public:
   using MIN_BULK_INSERT_SIZE = std::integral_constant<size_t, 0>;
-  
+
   AVLIndex(std::string _indexFileName) {
     this->indexFileName = _indexFileName;
     initIndex();
@@ -77,13 +79,14 @@ public:
 
   std::string get_index_name() const override;
 
-  Response add(Data<KEY_TYPE> data, physical_pos raw_pos) const override;
+  Index::Response add(Data<KEY_TYPE> data, physical_pos raw_pos) const override;
 
-  Response search(Data<KEY_TYPE> item) const override;
+  Index::Response search(Data<KEY_TYPE> item) const override;
 
-  Response remove(Data<KEY_TYPE> item) const override;
+  Index::Response remove(Data<KEY_TYPE> item) const override;
 
-  Response range_search(Data<KEY_TYPE> start, Data<KEY_TYPE> end) const override;
+  Index::Response range_search(Data<KEY_TYPE> start,
+                               Data<KEY_TYPE> end) const override;
 
   void displayPretty() const;
 

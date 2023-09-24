@@ -3,6 +3,7 @@
 #include "Record/Record.hpp"
 #include "Utils/File.hpp"
 
+#include <iostream>
 #include <numeric>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
@@ -39,17 +40,58 @@ HeapFile::TableMetadata::TableMetadata(
 
 auto HeapFile::load() -> std::vector<Record> {
 
-  m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
-  std::vector<Record> records(m_metadata.record_count());
+  spdlog::info("Loading all data");
 
-  Record::size_type curr_record = 0;
-  while (
-      records.at(curr_record).read(m_file_stream, m_metadata.attribute_types)) {
+  m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
+
+  if (std::filesystem::exists(m_table_path + DATA_FILE)) {
+    spdlog::info("File {} exists", m_table_path + DATA_FILE);
   }
+
+  if (!m_file_stream) {
+    spdlog::error("Could not open file {}", m_table_path + DATA_FILE);
+  }
+
+  std::vector<Record> records(m_metadata.record_count);
+
+  for (auto &record : records) {
+    record.read(m_file_stream, m_metadata.attribute_types);
+  }
+
+  m_file_stream.close();
   return records;
 }
 
 auto HeapFile::add(const Record & /*record*/) -> pos_type { return {}; }
+
+auto HeapFile::bulk_insert(const std::vector<Record> &records)
+    -> std::vector<pos_type> {
+
+  spdlog::info("Bulk inserting on heap file");
+
+  m_file_stream.open(m_table_path + DATA_FILE,
+                     std::ios::binary | std::ios::out);
+  auto initial_pos = next_pos();
+  m_file_stream.seekp(initial_pos, std::ios::beg);
+
+  for (const auto &rec : records) {
+    std::cout << "Inserting record at pos " << m_file_stream.tellp() << '\n';
+    rec.write(m_file_stream, m_metadata.attribute_types);
+  }
+
+  std::vector<pos_type> positions(records.size());
+
+  for (auto i = 0; auto &position : positions) {
+    position = initial_pos + static_cast<std::streamoff>(i) * get_record_size();
+    i++;
+  }
+  m_file_stream.close();
+
+  m_metadata.record_count += records.size();
+  write_metadata();
+
+  return positions;
+}
 
 auto HeapFile::next_pos() const -> pos_type { return {}; }
 
@@ -61,6 +103,7 @@ auto HeapFile::read(const pos_type &pos) -> Record {
   Record record;
 
   record.read(m_file_stream, m_metadata.attribute_types);
+  m_file_stream.close();
 
   return record;
 }
@@ -73,17 +116,52 @@ void HeapFile::update_first_deleted(pos_type pos) {
   write_metadata();
 }
 
-auto HeapFile::filter(const Record & /*record*/,
-                      const std::vector<std::string> & /*selected_attributes*/)
-    const -> QueryResponse {
+auto HeapFile::filter(Record &record,
+                      const std::vector<std::string> &selected_attributes,
+                      const query_time_t &times) const -> QueryResponse {
 
-  return {};
+  // Get indexes of attributes to filter
+  std::vector<uint8_t> attribute_idxs;
+
+  attribute_idxs.reserve(selected_attributes.size());
+  for (const auto &attr_name : selected_attributes) {
+    attribute_idxs.push_back(m_metadata.get_attribute_idx(attr_name));
+  }
+
+  // Iterate over each word in reverse order to prevent iterator invalidation
+  for (int i = static_cast<int>(record.m_fields.size()) - 1; i >= 0; --i) {
+    // If the index is not in the indices vector, remove the word
+    if (!std::binary_search(attribute_idxs.begin(), attribute_idxs.end(), i)) {
+      record.m_fields.erase(record.begin() + i);
+    }
+  }
+  return {{record}, times};
 }
 
-auto HeapFile::filter(const std::vector<Record> & /*record*/,
-                      const std::vector<std::string> & /*selected_attributes*/)
-    const -> QueryResponse {
-  return {};
+auto HeapFile::filter(std::vector<Record> &records,
+                      const std::vector<std::string> &selected_attributes,
+                      const query_time_t &times) const -> QueryResponse {
+
+  std::vector<uint8_t> attribute_idxs;
+  attribute_idxs.reserve(selected_attributes.size());
+  for (const auto &attr_name : selected_attributes) {
+    attribute_idxs.push_back(m_metadata.get_attribute_idx(attr_name));
+  }
+
+  // We assume the indexes are already sorted
+
+  // Iterate over each record
+  for (auto &record : records) {
+    // Iterate over each word in reverse order
+    for (int i = static_cast<int>(record.m_fields.size()) - 1; i >= 0; --i) {
+      // If the index is not in the indices vector, remove the word
+      if (!std::binary_search(attribute_idxs.begin(), attribute_idxs.end(),
+                              i)) {
+        record.m_fields.erase(record.begin() + i);
+      }
+    }
+  }
+  return {records, times};
 }
 
 void HeapFile::write_metadata() {
@@ -132,6 +210,17 @@ auto HeapFile::string_cast(const Type &type, const char *data) -> std::string {
   }
   }
   throw std::runtime_error("Invalid type");
+}
+
+auto HeapFile::rec_to_string(const Record &rec) -> std::string {
+
+  std::string record;
+
+  for (const auto &m_field : rec.m_fields) {
+
+    record += {m_field.begin(), m_field.end()};
+  }
+  return record;
 }
 
 auto HeapFile::get_record_size() const -> uint8_t { return C_RECORD_SIZE; }

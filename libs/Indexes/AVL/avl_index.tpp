@@ -48,7 +48,6 @@ template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::initIndex() {
   file.close();
 }
 
-//!
 template <typename KEY_TYPE>
 void AVLIndex<KEY_TYPE>::insert(physical_pos cPointer,
                                 AVLIndexNode<KEY_TYPE> &cNode,
@@ -60,9 +59,11 @@ void AVLIndex<KEY_TYPE>::insert(physical_pos cPointer,
     iNode.current_pos = sizeof(AVLIndexHeader);
     file.write(reinterpret_cast<char *>(&iNode),
                sizeof(AVLIndexNode<KEY_TYPE>));
+
     header.rootPointer = sizeof(AVLIndexHeader);
 
     file.seekp(0, std::ios::beg);
+
     file.write(reinterpret_cast<char *>(&header), sizeof(AVLIndexHeader));
     return;
   }
@@ -484,7 +485,8 @@ void AVLIndex<KEY_TYPE>::fixValue(physical_pos cPointer,
 //*
 template <typename KEY_TYPE>
 void AVLIndex<KEY_TYPE>::displayPretty(const std::string &prefix,
-                                       physical_pos cPointer, bool isLeft) const {
+                                       physical_pos cPointer,
+                                       bool isLeft) const {
   if (cPointer == -1) {
     return;
   }
@@ -537,7 +539,8 @@ void AVLIndex<KEY_TYPE>::rangeSearch(physical_pos cPointer,
 
 //* ADD OPERATION
 template <typename KEY_TYPE>
-Response AVLIndex<KEY_TYPE>::add(Data<KEY_TYPE> data, physical_pos raw_pos) const {
+Response AVLIndex<KEY_TYPE>::add(Data<KEY_TYPE> data,
+                                 physical_pos raw_pos) const {
   Response response;
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
@@ -626,7 +629,7 @@ Response AVLIndex<KEY_TYPE>::remove(Data<KEY_TYPE> item) const {
 //*
 template <typename KEY_TYPE>
 Response AVLIndex<KEY_TYPE>::range_search(Data<KEY_TYPE> start,
-                                         Data<KEY_TYPE> end) const {
+                                          Data<KEY_TYPE> end) const {
   Response response;
   file.open(this->indexFileName,
             std::ios::in | std::ios::out | std::ios::binary);
@@ -665,47 +668,48 @@ template <typename KEY_TYPE> void AVLIndex<KEY_TYPE>::displayPretty() const {
 };
 
 template <typename KEY_TYPE>
-std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
+std::pair<Response, std::vector<bool>> AVLIndex<KEY_TYPE>::bulk_insert(
     const std::vector<std::pair<Data<KEY_TYPE>, physical_pos>> &records) const {
-      Response response;
-      response.startTimer();
+  Response response;
+  response.startTimer();
 
-      try {
+  try {
 
-        if (records.empty()) {
-          response.stopTimer();
-          return {response, {}};
-        }
-
-        file.open(this->indexFileName,
-            std::ios::in | std::ios::out | std::ios::binary);
-        if (!file.is_open()) {
-          throw std::runtime_error("No se pudo abrir el archivo AVLIndex!");
-        }
-
-        auto record_copy = records;
-
-        for (auto &record : record_copy) {
-          AVLIndexNode<KEY_TYPE> insertNode;
-          insertNode.data = record.first;
-          insertNode.raw_pos = record.second;
-          AVLIndexNode<KEY_TYPE> currentNode;
-
-          insert(header.rootPointer, currentNode, insertNode, response);
-        }
-
-        file.close();
-
-      } catch (...) {
-        file.close();
-        response.stopTimer();
-        throw std::runtime_error("Couldn't load records");
-      }
+    if (records.empty()) {
       response.stopTimer();
-      return {response, {}}; 
+      return {response, {}};
+    }
+
+    file.open(this->indexFileName,
+              std::ios::in | std::ios::out | std::ios::binary);
+    if (!file.is_open()) {
+      throw std::runtime_error("No se pudo abrir el archivo AVLIndex!");
+    }
+
+    auto record_copy = records;
+
+    for (auto &record : record_copy) {
+      AVLIndexNode<KEY_TYPE> insertNode;
+      insertNode.data = record.first;
+      insertNode.raw_pos = record.second;
+      AVLIndexNode<KEY_TYPE> currentNode;
+
+      insert(header.rootPointer, currentNode, insertNode, response);
+    }
+
+    file.close();
+
+  } catch (...) {
+    file.close();
+    response.stopTimer();
+    throw std::runtime_error("Couldn't load records");
+  }
+  response.stopTimer();
+  return {response, {}};
 };
 
-template <typename KEY_TYPE> std::string AVLIndex<KEY_TYPE>::get_index_name() const {
+template <typename KEY_TYPE>
+std::string AVLIndex<KEY_TYPE>::get_index_name() const {
   return this->index_name;
 }
 

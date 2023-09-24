@@ -1,3 +1,0 @@
-TABLE NAME
-dni(int), nombre(varchar(10)), apellido(varchar(15)), edad(int)
-2345, Juan, Perez, 20

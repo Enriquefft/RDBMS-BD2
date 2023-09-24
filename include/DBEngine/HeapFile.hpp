@@ -21,6 +21,7 @@ public:
 
   auto load() -> std::vector<Record>;
   auto add(const Record &record) -> pos_type;
+  auto bulk_insert(const std::vector<Record> &records) -> std::vector<pos_type>;
   auto next_pos() const -> pos_type;
 
   auto read(const pos_type &pos) -> Record;
@@ -34,12 +35,12 @@ public:
   auto get_key_name() const -> std::pair<Type, std::string>;
   auto get_key_idx() const -> uint8_t;
 
-  auto filter(const Record &record,
-              const std::vector<std::string> &selected_attributes) const
-      -> QueryResponse;
-  auto filter(const std::vector<Record> &record,
-              const std::vector<std::string> &selected_attributes) const
-      -> QueryResponse;
+  auto filter(Record &record,
+              const std::vector<std::string> &selected_attributes,
+              const query_time_t &times) const -> QueryResponse;
+  auto filter(std::vector<Record> &record,
+              const std::vector<std::string> &selected_attributes,
+              const query_time_t &times) const -> QueryResponse;
 
   [[nodiscard]] auto get_attribute_names() const -> std::vector<std::string>;
   [[nodiscard]] auto get_index_names() const -> std::vector<std::string>;
@@ -61,15 +62,13 @@ private:
     std::vector<Type> attribute_types;
     std::string primary_key;
     pos_type first_deleted{};
+    uint64_t record_count{};
 
     TableMetadata(std::vector<std::string> _attribute_names,
                   std::vector<Type> _attribute_types, std::string _primary_key);
 
     [[nodiscard]] auto
     get_attribute_idx(const std::string &attribute_name) const -> uint8_t;
-    [[nodiscard]] auto record_count() const -> std::size_t {
-      return attribute_types.size();
-    }
     auto size() -> uint64_t {
       return std::accumulate(
           attribute_types.begin(), attribute_types.end(),
@@ -89,6 +88,8 @@ private:
 
   static auto string_cast(const Type &type, const char *data) -> std::string;
 
+  auto rec_to_string(const Record &rec) -> std::string;
+
   void update_first_deleted(pos_type pos);
   auto read_metadata() -> bool;
   static void generate_deleted_record(char *deleted, int pos);
@@ -98,7 +99,7 @@ private:
   auto to_string() -> std::string {
     std::string str;
     str += "Table name: " + m_table_name + "\n";
-    str += "Attribute names: ";
+    str += "Attribute names:\n";
     for (ulong i = 0; i < m_metadata.attribute_types.size(); i++) {
       str += m_metadata.attribute_names[i] + " ";
       str += m_metadata.attribute_types[i].to_string() + " ";

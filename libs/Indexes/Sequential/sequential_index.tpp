@@ -927,7 +927,7 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
   }
 
   response.stopTimer();
-  return {response, {}};
+  return {response, std::vector<bool>(records.size())};
 }
 
 template <typename KEY_TYPE>
