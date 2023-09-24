@@ -31,12 +31,12 @@ protected:
   size_t numberRecordsWithHeader(std::string file_name) const;
 
   template <typename HeaderType, typename RecordType>
-  void printFileWithHeader(std::string file_name);
+  void printFileWithHeader(std::string file_name) const;
 
   template <typename RecordType>
   size_t numberRecords(std::string file_name) const;
 
-  template <typename RecordType> void printFile(const std::string &file_name);
+  template <typename RecordType> void printFile(const std::string &file_name) const;
 
   template <typename FileType = std::fstream, typename HeaderType>
   void writeHeader(FileType &file, HeaderType &header) const;

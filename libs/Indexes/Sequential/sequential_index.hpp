@@ -61,6 +61,8 @@ public:
     this->attribute_name = _attribute_name;
     this->index_name = "Sequential";
 
+    // DB_FILES/Sequential/<table_name>_<attribute_name>/<table_name>_<attribute_name>_<index_name>_indexFile.bin
+
     std::string _directory = this->directory + "/" + 
                              this->index_name + "/" +
                              this->table_name + "_" + this->attribute_name;
@@ -105,9 +107,9 @@ public:
   /*
       Print files sequentially
   */
-  void printIndexFile();
-  void printAuxFile();
-  void printDuplicatesFile();
+  void printIndexFile() const;
+  void printAuxFile() const;
+  void printDuplicatesFile() const;
 };
 
 #include "sequential_index.tpp"

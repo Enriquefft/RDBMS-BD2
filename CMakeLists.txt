@@ -45,6 +45,7 @@ target_compile_options(
             -Wwrite-strings
             -Wcast-qual
             -Wcast-align
+            -Wno-switch
             -Wconversion>
             # Disable some warnings when using clang's Weverything
             $<$<CXX_COMPILER_ID:Clang>:-Wno-c++98-compat>

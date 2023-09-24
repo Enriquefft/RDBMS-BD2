@@ -74,7 +74,7 @@ size_t Index<KEY_TYPE>::numberRecordsWithHeader(std::string file_name) const {
 
 template <typename KEY_TYPE>
 template <typename HeaderType, typename RecordType>
-void Index<KEY_TYPE>::printFileWithHeader(std::string file_name) {
+void Index<KEY_TYPE>::printFileWithHeader(std::string file_name) const {
   std::fstream file(file_name, std::ios::in | std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     throw std::runtime_error("Couldn't open file");
@@ -114,7 +114,7 @@ size_t Index<KEY_TYPE>::numberRecords(std::string file_name) const {
 
 template <typename KEY_TYPE>
 template <typename RecordType>
-void Index<KEY_TYPE>::printFile(const std::string &file_name) {
+void Index<KEY_TYPE>::printFile(const std::string &file_name) const {
   std::fstream file(file_name, std::ios::in | std::ios::out | std::ios::binary);
   if (!file.is_open()) {
     throw std::runtime_error("Couldn't open file");
