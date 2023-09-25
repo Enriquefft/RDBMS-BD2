@@ -1,16 +1,15 @@
-#ifndef INDEX_CONTAINER_HPP
-#define INDEX_CONTAINER_HPP
+#include "include/ISAM.h"
+#include <unordered_map>
+#include <variant>
 
-#include "IndexConcept.hpp"
-#include <spdlog/spdlog.h>
+template <typename T>
+concept ValidType = true;
 
-#include "AVL/avl_index.hpp"
-#include "ISAM/include/ISAM.h"
-#include "Sequential/sequential_index.hpp"
+class Response {};
 
-template <template <typename> class IndexType>
-  requires ValidIndex<IndexType>
-struct IndexContainer {
+using response_time = std::chrono::nanoseconds;
+
+template <template <typename> class IndexType> struct IndexContainer {
 
   template <ValidType T>
   explicit IndexContainer(IndexType<T> &idx) : m_idx{std::move(idx)} {}
@@ -53,27 +52,45 @@ struct IndexContainer {
   template <ValidType T>
   auto bulk_insert(std::vector<std::pair<T, std::streampos>> &elements)
       -> std::pair<Response, std::vector<bool>> {
-    spdlog::info("calling bulk_insert on idx");
     return std::get<IndexType<T>>(m_idx).bulk_insert(elements);
   }
 
-  std::variant<IndexType<int>, IndexType<float>, IndexType<std::string>> m_idx;
-};
-
-struct SequentialIndexContainer : public IndexContainer<SequentialIndex> {
-  template <ValidIndexType T>
-  SequentialIndexContainer(SequentialIndex<T> &idx)
-      : IndexContainer<SequentialIndex>{idx} {}
-};
-
-struct AvlIndexContainer : public IndexContainer<AVLIndex> {
-  template <ValidIndexType T>
-  AvlIndexContainer(AVLIndex<T> &idx) : IndexContainer<AVLIndex>{idx} {}
+  std::variant<IndexType<int>, IndexType<float> /* , IndexType<std::string> */>
+      m_idx;
 };
 
 struct IsamIndexContainer : public IndexContainer<ISAM> {
-  template <ValidIndexType T>
+  template <typename T>
   IsamIndexContainer(ISAM<T> &idx) : IndexContainer<ISAM>{idx} {}
 };
 
-#endif // !AVL_INDEX_CONTAINER_HPP
+namespace DB_ENGINE {
+struct Index {
+
+  std::string table;
+  std::string attribute_name;
+
+  // spaceship operator
+  friend auto operator<=>(const Index &, const Index &) = default;
+};
+}; // namespace DB_ENGINE
+
+struct HashPair {
+  auto operator()(const DB_ENGINE::Index &index) const -> size_t {
+    auto hash1 = std::hash<std::string>{}(index.table);
+    auto hash2 = std::hash<std::string>{}(index.attribute_name);
+    if (hash1 != hash2) {
+      return hash1 ^ hash2;
+    }
+    // If hash1 == hash2, their XOR is zero.
+    return hash1;
+  }
+};
+int main() {
+
+  std::unordered_map<DB_ENGINE::Index, IsamIndexContainer, HashPair> indexes;
+
+  ISAM<int> idx("aef", "feiojwf", false);
+  indexes.emplace(DB_ENGINE::Index("efjo", "sfeoi"), idx);
+  auto x = indexes.at({"efjo", "sfeoi"}).get_attribute_name();
+}

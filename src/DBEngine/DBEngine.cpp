@@ -415,7 +415,7 @@ void DBEngine::create_index(const std::string &table_name,
             spdlog::warn("Index already exists");
             throw std::invalid_argument("Index already exists");
           }
-          SequentialIndex<att_type> idx(table_name, column_name, false);
+          ISAM<att_type> idx(table_name, column_name, false);
           m_isam_indexes.emplace(Index(table_name, column_name), idx);
           m_isam_indexes.at({table_name, column_name})
               .bulk_insert<att_type>(key_values);
@@ -485,11 +485,13 @@ struct IndexInsert {
 };
 
 template <ValidType T>
-static void handle_option(const INDEX_OPTION &option,
-                          const IndexInsert &inserted_keys,
-                          const std::vector<bool> &pk_insertion,
-                          std::optional<AvlIndexContainer> avl, auto sequential,
-                          auto isam, const auto &get_pos) {
+static void handle_option(
+    const INDEX_OPTION &option, const IndexInsert &inserted_keys,
+    const std::vector<bool> &pk_insertion,
+    std::optional<std::reference_wrapper<AvlIndexContainer>> avl,
+    std::optional<std::reference_wrapper<SequentialIndexContainer>> sequential,
+    std::optional<std::reference_wrapper<IsamIndexContainer>> isam,
+    const auto &get_pos) {
 
   spdlog::info("Inserting into {}", static_cast<uint8_t>(option));
   spdlog::info("values");
@@ -513,19 +515,19 @@ static void handle_option(const INDEX_OPTION &option,
   if (options.test(0)) {
     spdlog::info("Found avl");
     std::jthread avl_insert([&avl, &inserted_indexes]() {
-      avl.value().template bulk_insert<T>(inserted_indexes);
+      avl.value().get().template bulk_insert<T>(inserted_indexes);
     });
   }
   if (options.test(1)) {
     spdlog::info("Found isam");
     std::jthread isam_insert([&isam, &inserted_indexes]() {
-      isam.value().template bulk_insert<T>(inserted_indexes);
+      isam.value().get().template bulk_insert<T>(inserted_indexes);
     });
   }
   if (options.test(2)) {
     spdlog::info("Found seq");
     std::jthread sequential_insert([&sequential, &inserted_indexes]() {
-      sequential.value().bulk_insert(inserted_indexes);
+      sequential.value().get().bulk_insert(inserted_indexes);
     });
   }
 }
@@ -599,7 +601,7 @@ void insert_field(const auto &field, const ulong &curr_field,
 
 template <typename T>
 auto get_idx(std::string table_name, std::string attribute_name, T idx_map)
-    -> std::optional<typename T::mapped_type> {
+    -> std::optional<std::reference_wrapper<typename T::mapped_type>> {
   if (idx_map.contains({table_name, attribute_name})) {
     return idx_map.at({table_name, attribute_name});
   }
@@ -609,217 +611,220 @@ auto get_idx(std::string table_name, std::string attribute_name, T idx_map)
 void DBEngine::csv_insert(const std::string &table_name,
                           const std::filesystem::path &file) {
 
-  auto rec_size = m_tables_raw.at(table_name).get_record_size();
-  auto pos_getter = [&table_name, this, &rec_size]() {
-    // Starting pos
-    static std::streampos prev_pos =
-        m_tables_raw.at(table_name).next_pos() -
-        static_cast<std::streampos>(
-            m_tables_raw.at(table_name).get_record_size());
-    prev_pos += rec_size;
-    return prev_pos;
-  };
-
-  std::filesystem::path table_path = TABLES_PATH + table_name;
-  std::filesystem::path csv_path = CSV_PATH + file.filename().string() + ".csv";
-
-  if (!std::filesystem::exists(csv_path)) {
-    throw std::runtime_error("File does not exist");
-  }
-
-  auto &table_heap = m_tables_raw.at(table_name);
-
-  auto [key_type, key_name] = table_heap.get_key_name();
-  auto primary_key_idx = table_heap.get_attribute_idx(key_name);
-
-  std::ifstream csv_stream(csv_path);
-
-  // Get csv size
-  csv_stream.seekg(0, std::ios::end);
-  auto csv_size = csv_stream.tellg();
-  auto min_record_count =
-      static_cast<ulong>(csv_size / table_heap.get_record_size());
-  csv_stream.seekg(0, std::ios::beg);
-
-  std::string current_line;
-
-  // Field types
-  auto field_types = table_heap.get_types();
-  auto inserted_keys = generate_key_output(field_types, min_record_count);
-
-  std::string key_value = get_sample_value(key_type);
-
-  std::vector<bool> inserted_indexes;
-
-  std::jthread pk_insertion;
-
-  key_cast_and_execute(key_type.type, key_value, [&](auto sample) {
-    // Iterate records
-    using pk_type = decltype(sample);
-
-    if (std::is_same_v<int, pk_type>) {
-      spdlog::info("inserting with key==int");
-    }
-
-    std::vector<std::pair<pk_type, std::streampos>> pk_values;
-
-    if (std::is_same_v<std::vector<std::pair<int, std::streampos>>,
-                       decltype(pk_values)>) {
-      spdlog::info("inserting into pk_values ==vec int");
-    }
-
-    auto pk_init_size = SequentialIndex<pk_type>::MIN_BULK_INSERT_SIZE::value /
-                        sizeof(std::pair<pk_type, HeapFile::pos_type>);
-    pk_values.reserve(min_record_count);
-
-    std::vector<Record> records;
-    while (std::getline(csv_stream, current_line)) {
-
-      auto fields = current_line | std::ranges::views::split(',');
-      records.emplace_back(fields);
-
-      // Iterate fields
-      for (ulong curr_field = 0; auto field : fields) {
-
-        insert_field(field, curr_field, field_types, inserted_keys);
-
-        if (curr_field == primary_key_idx) {
-
-          key_value = std::string(field.begin(), field.end());
-
-          switch (key_type.type) {
-
-          case Type::BOOL: {
-            spdlog::warn("Bool can't be pk");
-            break;
-          }
-
-          case Type::INT: {
-            std::pair<int, std::streampos> i =
-                std::make_pair(stoi(key_value), pos_getter());
-            pk_values.push_back(i);
-            break;
-          }
-
-          case Type::FLOAT: {
-            std::pair<float, std::streampos> i =
-                std::make_pair(stof(key_value), pos_getter());
-            pk_values.push_back(i);
-            break;
-          }
-
-            // case Type::VARCHAR: {
-            //   std::pair<std::string, std::streampos> i =
-            //       std::make_pair(key_value, pos_getter());
-            //
-            //   pk_values.push_back(i);
-            //
-            //   break;
-            // }
-          }
-
-          if (curr_field > pk_init_size) {
-            pk_insertion = std::jthread([&inserted_indexes, &table_name,
-                                         &key_name, &pk_values, this]() {
-              spdlog::info("Bulk inserting pk - 1");
-              auto bulk_insert_response =
-                  m_sequential_indexes.at({table_name, key_name})
-                      .bulk_insert<pk_type>(pk_values);
-              inserted_indexes = bulk_insert_response.second;
-            });
-          }
-        }
-
-        curr_field++;
-      }
-    }
-
-    table_heap.bulk_insert(records);
-
-    if (pk_insertion.joinable()) {
-      pk_insertion.join();
-    }
-
-    spdlog::info("Inserting into primary key index n° - rest {}",
-                 pk_values.size());
-
-    for (const auto &elem : pk_values) {
-      std::cout << elem.first << ' ' << elem.second << '\n';
-    }
-
-    auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
-                              .bulk_insert<pk_type>(pk_values)
-                              .second;
-    spdlog::info("Recieved bool count: {}", inserted_bools.size());
-
-    inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
-                            inserted_bools.end());
-  });
-
-  // get non-primary indexes
-  std::vector<INDEX_OPTION> available_indexes;
-  available_indexes.resize(field_types.size(), INDEX_OPTION::NONE);
-
-  // Fill available_indexes
-  auto process_indexes = [&table_name, &available_indexes, &table_heap](
-                             const auto &indexes, INDEX_OPTION option) {
-    auto count = 0;
-    for (const auto &[idx, UNUSED] : indexes) {
-      if (idx.table == table_name) {
-        std::cout << "Found available index on :" << idx.attribute_name << ' '
-                  << count << ' ' << option << '\n';
-        available_indexes.at(
-            table_heap.get_attribute_idx(idx.attribute_name)) += option;
-      }
-      count++;
-    }
-  };
-  process_indexes(m_sequential_indexes, INDEX_OPTION::SEQUENTIAL);
-  process_indexes(m_isam_indexes, INDEX_OPTION::ISAM);
-  process_indexes(m_avl_indexes, INDEX_OPTION::AVL);
-
-  // Insert records into available indexes
-  auto attribute_names = table_heap.get_attribute_names();
-
-  spdlog::info("Inserting into available indexes");
-  for (ulong idx_c = 0; const auto &idx : available_indexes) {
-
-    spdlog::info("Inserting into index n° {}", idx_c);
-
-    switch (field_types.at(idx_c).type) {
-
-    case Type::INT:
-      handle_option<int>(
-          idx, inserted_keys.at(idx_c), inserted_indexes,
-          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
-          pos_getter);
-      break;
-    case Type::FLOAT:
-      handle_option<float>(
-          idx, inserted_keys.at(idx_c), inserted_indexes,
-          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
-          pos_getter);
-      break;
-    case Type::VARCHAR:
-      handle_option<std::string>(
-          idx, inserted_keys.at(idx_c), inserted_indexes,
-          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
-          pos_getter);
-      break;
-    case Type::BOOL:
-      spdlog::error(
-          "Bool can't be indexed. at: inserting into available indexes.");
-      break;
-    }
-
-    idx_c++;
-  }
+  // auto rec_size = m_tables_raw.at(table_name).get_record_size();
+  // auto pos_getter = [&table_name, this, &rec_size]() {
+  //   // Starting pos
+  //   static std::streampos prev_pos =
+  //       m_tables_raw.at(table_name).next_pos() -
+  //       static_cast<std::streampos>(
+  //           m_tables_raw.at(table_name).get_record_size());
+  //   prev_pos += rec_size;
+  //   return prev_pos;
+  // };
+  //
+  // std::filesystem::path table_path = TABLES_PATH + table_name;
+  // std::filesystem::path csv_path = CSV_PATH + file.filename().string() +
+  // ".csv";
+  //
+  // if (!std::filesystem::exists(csv_path)) {
+  //   throw std::runtime_error("File does not exist");
+  // }
+  //
+  // auto &table_heap = m_tables_raw.at(table_name);
+  //
+  // auto [key_type, key_name] = table_heap.get_key_name();
+  // auto primary_key_idx = table_heap.get_attribute_idx(key_name);
+  //
+  // std::ifstream csv_stream(csv_path);
+  //
+  // // Get csv size
+  // csv_stream.seekg(0, std::ios::end);
+  // auto csv_size = csv_stream.tellg();
+  // auto min_record_count =
+  //     static_cast<ulong>(csv_size / table_heap.get_record_size());
+  // csv_stream.seekg(0, std::ios::beg);
+  //
+  // std::string current_line;
+  //
+  // // Field types
+  // auto field_types = table_heap.get_types();
+  // auto inserted_keys = generate_key_output(field_types, min_record_count);
+  //
+  // std::string key_value = get_sample_value(key_type);
+  //
+  // std::vector<bool> inserted_indexes;
+  //
+  // std::jthread pk_insertion;
+  //
+  // key_cast_and_execute(key_type.type, key_value, [&](auto sample) {
+  //   // Iterate records
+  //   using pk_type = decltype(sample);
+  //
+  //   if (std::is_same_v<int, pk_type>) {
+  //     spdlog::info("inserting with key==int");
+  //   }
+  //
+  //   std::vector<std::pair<pk_type, std::streampos>> pk_values;
+  //
+  //   if (std::is_same_v<std::vector<std::pair<int, std::streampos>>,
+  //                      decltype(pk_values)>) {
+  //     spdlog::info("inserting into pk_values ==vec int");
+  //   }
+  //
+  //   auto pk_init_size = SequentialIndex<pk_type>::MIN_BULK_INSERT_SIZE::value
+  //   /
+  //                       sizeof(std::pair<pk_type, HeapFile::pos_type>);
+  //   pk_values.reserve(min_record_count);
+  //
+  //   std::vector<Record> records;
+  //   while (std::getline(csv_stream, current_line)) {
+  //
+  //     auto fields = current_line | std::ranges::views::split(',');
+  //     records.emplace_back(fields);
+  //
+  //     // Iterate fields
+  //     for (ulong curr_field = 0; auto field : fields) {
+  //
+  //       insert_field(field, curr_field, field_types, inserted_keys);
+  //
+  //       if (curr_field == primary_key_idx) {
+  //
+  //         key_value = std::string(field.begin(), field.end());
+  //
+  //         switch (key_type.type) {
+  //
+  //         case Type::BOOL: {
+  //           spdlog::warn("Bool can't be pk");
+  //           break;
+  //         }
+  //
+  //         case Type::INT: {
+  //           std::pair<int, std::streampos> i =
+  //               std::make_pair(stoi(key_value), pos_getter());
+  //           pk_values.push_back(i);
+  //           break;
+  //         }
+  //
+  //         case Type::FLOAT: {
+  //           std::pair<float, std::streampos> i =
+  //               std::make_pair(stof(key_value), pos_getter());
+  //           pk_values.push_back(i);
+  //           break;
+  //         }
+  //
+  //           // case Type::VARCHAR: {
+  //           //   std::pair<std::string, std::streampos> i =
+  //           //       std::make_pair(key_value, pos_getter());
+  //           //
+  //           //   pk_values.push_back(i);
+  //           //
+  //           //   break;
+  //           // }
+  //         }
+  //
+  //         if (curr_field > pk_init_size) {
+  //           pk_insertion = std::jthread([&inserted_indexes, &table_name,
+  //                                        &key_name, &pk_values, this]() {
+  //             spdlog::info("Bulk inserting pk - 1");
+  //             auto bulk_insert_response =
+  //                 m_sequential_indexes.at({table_name, key_name})
+  //                     .bulk_insert<pk_type>(pk_values);
+  //             inserted_indexes = bulk_insert_response.second;
+  //           });
+  //         }
+  //       }
+  //
+  //       curr_field++;
+  //     }
+  //   }
+  //
+  //   table_heap.bulk_insert(records);
+  //
+  //   if (pk_insertion.joinable()) {
+  //     pk_insertion.join();
+  //   }
+  //
+  //   spdlog::info("Inserting into primary key index n° - rest {}",
+  //                pk_values.size());
+  //
+  //   for (const auto &elem : pk_values) {
+  //     std::cout << elem.first << ' ' << elem.second << '\n';
+  //   }
+  //
+  //   auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
+  //                             .bulk_insert<pk_type>(pk_values)
+  //                             .second;
+  //   spdlog::info("Recieved bool count: {}", inserted_bools.size());
+  //
+  //   inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
+  //                           inserted_bools.end());
+  // });
+  //
+  // // get non-primary indexes
+  // std::vector<INDEX_OPTION> available_indexes;
+  // available_indexes.resize(field_types.size(), INDEX_OPTION::NONE);
+  //
+  // // Fill available_indexes
+  // auto process_indexes = [&table_name, &available_indexes, &table_heap](
+  //                            const auto &indexes, INDEX_OPTION option) {
+  //   auto count = 0;
+  //   for (const auto &[idx, UNUSED] : indexes) {
+  //     if (idx.table == table_name) {
+  //       std::cout << "Found available index on :" << idx.attribute_name << '
+  //       '
+  //                 << count << ' ' << option << '\n';
+  //       available_indexes.at(
+  //           table_heap.get_attribute_idx(idx.attribute_name)) += option;
+  //     }
+  //     count++;
+  //   }
+  // };
+  // process_indexes(m_sequential_indexes, INDEX_OPTION::SEQUENTIAL);
+  // process_indexes(m_isam_indexes, INDEX_OPTION::ISAM);
+  // process_indexes(m_avl_indexes, INDEX_OPTION::AVL);
+  //
+  // // Insert records into available indexes
+  // auto attribute_names = table_heap.get_attribute_names();
+  //
+  // spdlog::info("Inserting into available indexes");
+  // for (ulong idx_c = 0; const auto &idx : available_indexes) {
+  //
+  //   spdlog::info("Inserting into index n° {}", idx_c);
+  //
+  //   switch (field_types.at(idx_c).type) {
+  //
+  //   case Type::INT:
+  //     handle_option<int>(
+  //         idx, inserted_keys.at(idx_c), inserted_indexes,
+  //         get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
+  //         get_idx(table_name, attribute_names.at(idx_c),
+  //         m_sequential_indexes), get_idx(table_name,
+  //         attribute_names.at(idx_c), m_isam_indexes), pos_getter);
+  //     break;
+  //   case Type::FLOAT:
+  //     handle_option<float>(
+  //         idx, inserted_keys.at(idx_c), inserted_indexes,
+  //         get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
+  //         get_idx(table_name, attribute_names.at(idx_c),
+  //         m_sequential_indexes), get_idx(table_name,
+  //         attribute_names.at(idx_c), m_isam_indexes), pos_getter);
+  //     break;
+  //   case Type::VARCHAR:
+  //     handle_option<std::string>(
+  //         idx, inserted_keys.at(idx_c), inserted_indexes,
+  //         get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
+  //         get_idx(table_name, attribute_names.at(idx_c),
+  //         m_sequential_indexes), get_idx(table_name,
+  //         attribute_names.at(idx_c), m_isam_indexes), pos_getter);
+  //     break;
+  //   case Type::BOOL:
+  //     spdlog::error(
+  //         "Bool can't be indexed. at: inserting into available indexes.");
+  //     break;
+  //   }
+  //
+  //   idx_c++;
+  // }
 }
 
 auto DBEngine::csv_insert(const std::filesystem::path & /*file*/) -> bool {

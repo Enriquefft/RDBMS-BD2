@@ -36,7 +36,8 @@ protected:
   template <typename RecordType>
   size_t numberRecords(std::string file_name) const;
 
-  template <typename RecordType> void printFile(const std::string &file_name) const;
+  template <typename RecordType>
+  void printFile(const std::string &file_name) const;
 
   template <typename FileType = std::fstream, typename HeaderType>
   void writeHeader(FileType &file, HeaderType &header) const;
@@ -59,6 +60,8 @@ protected:
                        RecordType &record) const;
 
 public:
+  virtual ~Index() = default;
+
   std::string get_attribute_name() const { return this->attribute_name; }
   std::string get_table_name() const { return this->table_name; }
 
