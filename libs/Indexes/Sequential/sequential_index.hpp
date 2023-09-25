@@ -5,9 +5,9 @@
 #include "index.hpp"
 #include "sequential_index_header.hpp"
 #include "sequential_index_record.hpp"
+#include <filesystem>
 #include <stdexcept>
 #include <type_traits>
-#include <filesystem>
 
 template <typename KEY_TYPE = default_data_type>
 class SequentialIndex : public Index::Index<KEY_TYPE> {
@@ -63,20 +63,21 @@ public:
 
     // DB_FILES/Sequential/<table_name>_<attribute_name>/<table_name>_<attribute_name>_<index_name>_indexFile.bin
 
-    std::string _directory = this->directory + "/" + 
-                             this->index_name + "/" +
-                             this->table_name + "_" + this->attribute_name;
+    std::string _directory = this->directory + "/" + this->index_name + "/" +
+                             this->table_name + "/" + this->attribute_name;
 
-    this->indexFilename = _directory + "/" + _table_name + "_" + _attribute_name + "_" +
-                          this->index_name + "_indexFile.bin";
-    this->auxFilename = _directory + "/" + _table_name + "_" + _attribute_name + "_" +
-                        this->index_name + "_auxFile.bin";
-    this->duplicatesFilename = _directory + "/" + _table_name + "_" + _attribute_name + "_" +
-                               this->index_name + "_duplicateFile.bin";
+    this->indexFilename = _directory + "/" + _table_name + "_" +
+                          _attribute_name + "_" + this->index_name +
+                          "_indexFile.bin";
+    this->auxFilename = _directory + "/" + _table_name + "_" + _attribute_name +
+                        "_" + this->index_name + "_auxFile.bin";
+    this->duplicatesFilename = _directory + "/" + _table_name + "_" +
+                               _attribute_name + "_" + this->index_name +
+                               "_duplicateFile.bin";
     this->PK = PK;
 
     if (!std::filesystem::is_directory(_directory)) {
-      std::filesystem::create_directory(_directory);
+      std::filesystem::create_directories(_directory);
       createFile();
     }
   }

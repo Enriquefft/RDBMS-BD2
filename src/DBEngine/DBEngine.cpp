@@ -45,6 +45,10 @@ DB_ENGINE::DBEngine::DBEngine() {
   generate_directories();
 
   // Read tables raw data
+  for (auto const &dir_entry :
+       std::filesystem::directory_iterator{TABLES_PATH}) {
+    HeapFile heap_file(dir_entry.path());
+  }
 
   // Load Indexes
 }
@@ -328,7 +332,7 @@ void DBEngine::create_index(const std::string &table_name,
         std::vector<std::pair<att_type, std::streampos>> key_values;
         auto all_records = load(table_name, {column_name}).records;
         std::transform(all_records.begin(), all_records.end(),
-                       key_values.begin(), [&TYPE](auto record) {
+                       std::back_inserter(key_values), [&TYPE](auto record) {
                          auto str_val = record.m_fields.at(0);
                          auto str_value =
                              std::string(str_val.begin(), str_val.end());
@@ -338,16 +342,15 @@ void DBEngine::create_index(const std::string &table_name,
                          switch (TYPE.type) {
 
                          case Type::BOOL:
-                           return_v = {DB_ENGINE::stob(str_value), 1};
+                         case Type::VARCHAR:
                            break;
+
                          case Type::INT:
                            return_v = {std::stoi(str_value), 4};
                            break;
 
                          case Type::FLOAT:
                            return_v = {std::stof(str_value), 4};
-                           break;
-                         case Type::VARCHAR:
                            break;
                          }
                          return return_v;

@@ -1,5 +1,3 @@
-
-
 #include <crow/app.h>
 #include <crow/http_response.h>
 #include <gtest/gtest.h>
@@ -9,7 +7,7 @@
 
 constexpr bool REMOVE_AFTER_TEST = false;
 
-class ElRealTest : public ::testing::Test {
+class CreateIndex : public ::testing::Test {
 protected:
   Api app;
   crow::request req;
@@ -30,39 +28,52 @@ protected:
   }
 };
 
-TEST_F(ElRealTest, create) {
-  auto query =
-      "CREATE TABLE " + TEST_TABLE +
-      " (count double, id int primary key, name char(12), paso_bd bool);";
+TEST_F(CreateIndex, create) {
+  auto query = "CREATE TABLE " + TEST_TABLE +
+               " (count double, id int primary key, name char(12), paso_bd "
+               "bool, nu int);";
   auto response = test_request(query);
   EXPECT_EQ(response.code, 200);
 }
 
-TEST_F(ElRealTest, insertSingle) {
-  auto query =
-      "INSERT INTO " + TEST_TABLE + " Values (3.5, 8, 'qwerty', 'true');";
+TEST_F(CreateIndex, createIndexSequential1) {
+  auto query = "CREATE INDEX SEQ ON " + TEST_TABLE + "(nu);";
   auto response = test_request(query);
   EXPECT_EQ(response.code, 200);
 }
-TEST_F(ElRealTest, insertMore) {
+
+TEST_F(CreateIndex, insertSingle) {
+  auto query =
+      "INSERT INTO " + TEST_TABLE + " Values (3.5, 8, 'qwerty', 'true', 45);";
+  auto response = test_request(query);
+  EXPECT_EQ(response.code, 200);
+}
+
+TEST_F(CreateIndex, insertMore) {
   auto query1 =
-      "INSERT INTO " + TEST_TABLE + " Values (3.5, 10, 'qwerty', 'true');";
+      "INSERT INTO " + TEST_TABLE + " Values (3.5, 10, 'qwerty', 'true', 93);";
   auto query2 =
-      "INSERT INTO " + TEST_TABLE + " Values (3.5, 9, 'qwerty', 'true');";
+      "INSERT INTO " + TEST_TABLE + " Values (3.5, 9, 'qwerty', 'true', 12);";
   auto response1 = test_request(query1);
   auto response2 = test_request(query2);
   EXPECT_EQ(response1.code, 200);
   EXPECT_EQ(response2.code, 200);
 }
 
-TEST_F(ElRealTest, selectAll) {
+TEST_F(CreateIndex, createIndexSequential2) {
+  auto query = "CREATE INDEX SEQ ON " + TEST_TABLE + "(count);";
+  auto response = test_request(query);
+  EXPECT_EQ(response.code, 200);
+}
+
+TEST_F(CreateIndex, selectAll) {
   auto query = "SELECT * FROM " + TEST_TABLE + ";";
   auto response = test_request(query);
   spdlog::info("{}", response.body);
   EXPECT_EQ(response.code, 200);
 }
 
-TEST_F(ElRealTest, selectSome) {
+TEST_F(CreateIndex, selectSome) {
 
   auto query = "SELECT name, id FROM " + TEST_TABLE + ";";
   auto response = test_request(query);
@@ -70,7 +81,7 @@ TEST_F(ElRealTest, selectSome) {
   EXPECT_EQ(response.code, 200);
 }
 
-TEST_F(ElRealTest, dropTable) {
+TEST_F(CreateIndex, dropTable) {
   if (!REMOVE_AFTER_TEST) {
     return;
   }
@@ -79,7 +90,7 @@ TEST_F(ElRealTest, dropTable) {
   EXPECT_EQ(response.code, 200);
 }
 
-TEST_F(ElRealTest, tableDropped) {
+TEST_F(CreateIndex, tableDropped) {
   if (!REMOVE_AFTER_TEST) {
     return;
   }

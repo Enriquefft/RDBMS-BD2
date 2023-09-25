@@ -18,6 +18,7 @@ public:
   explicit HeapFile(std::string table_name, std::vector<Type> types,
                     std::vector<std::string> attribute_names,
                     std::string primary_key);
+  explicit HeapFile(const std::filesystem::path &table_path);
 
   auto load() -> std::vector<Record>;
   auto add(const Record &record) -> pos_type;
@@ -67,6 +68,7 @@ private:
 
     TableMetadata(std::vector<std::string> _attribute_names,
                   std::vector<Type> _attribute_types, std::string _primary_key);
+    TableMetadata() = default;
 
     [[nodiscard]] auto
     get_attribute_idx(const std::string &attribute_name) const -> uint8_t;
