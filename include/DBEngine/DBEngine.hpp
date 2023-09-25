@@ -76,6 +76,9 @@ public:
   auto load(const std::string &table_name,
             const std::vector<std::string> &selected_attributes)
       -> QueryResponse;
+  auto load(const std::string &table_name,
+            const std::vector<std::string> &selected_attributes,
+            query_time_t &times) -> QueryResponse;
 
   auto load(const std::string &table_name,
             const std::vector<std::string> &selected_attributes,
@@ -113,23 +116,25 @@ public:
   /// @details Insert value from a csv file into the table, the csv header must
   /// be valid according to the existing table. The records are inserted all
   /// adjacent in O(n) time.
-  void csv_insert(const std::string &table_name,
-                  const std::filesystem::path &file);
+  auto csv_insert(const std::string &table_name,
+                  const std::filesystem::path &file) -> query_time_t;
 
   /// @brief Create a table from the csv file.
   /// @param file The path to the csv file.
   /// @details Reads the csv file and creates a table with the name of the file.
   /// The file must contain a valid header.
-  auto csv_insert(const std::filesystem::path &file) -> bool;
+  auto csv_insert(const std::filesystem::path &file) -> query_time_t;
 
   /// @brief Remove a value from a table.
   /// @param table_name The name of the table to remove the value from.
-  /// @param key The key of the value to remove.
+  /// @param key_str_value The key of the value to remove.
   /// @return True if the value was removed, false otherwise.
-  auto remove(const std::string &table_name, const Attribute &key) -> bool;
+  auto remove(const std::string &table_name, const Attribute &key_str_value)
+      -> std::pair<query_time_t, bool>;
 
-  void create_index(const std::string &table_name,
-                    const std::string &column_name, const Index_t &index_type);
+  auto create_index(const std::string &table_name,
+                    const std::string &column_name, const Index_t &index_type)
+      -> query_time_t;
 
   /// @brief Query if a table exists.
   /// @param table_name The name of the table to query.
@@ -150,8 +155,9 @@ public:
 
   /// @brief Sort the attributes to match the creation order
   /// @param attributes vector to sort
-  void sort_attributes(const std::string &table_name,
-                       std::vector<std::string> &attributes) const;
+  auto sort_attributes(const std::string &table_name,
+                       const std::vector<std::string> &attributes) const
+      -> std::vector<std::string>;
 
   /// @brief Get the Indexes names asociated with a table.
   /// @param table_name The name of the table to get the indexes from.

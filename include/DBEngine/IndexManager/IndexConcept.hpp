@@ -10,8 +10,7 @@ concept ValidType = std::same_as<T, int> || std::same_as<T, float> ||
                     std::same_as<T, std::string> || std::same_as<T, bool>;
 
 template <typename T>
-concept ValidIndexType = std::same_as<T, int> || std::same_as<T, float> ||
-                         std::same_as<T, std::string>;
+concept ValidIndexType = std::same_as<T, int> || std::same_as<T, float>;
 
 template <typename T> auto str_cast(const T &value) -> std::string {
   return std::to_string(value);
@@ -41,7 +40,6 @@ concept ValidIndexHelper = ValidIndexType<U> && requires(T<U> idx, U u) {
 };
 
 template <template <typename> class T>
-concept ValidIndex = ValidIndexHelper<int, T> && ValidIndexHelper<float, T> &&
-                     ValidIndexHelper<std::string, T>;
+concept ValidIndex = ValidIndexHelper<int, T> && ValidIndexHelper<float, T>;
 
 #endif // !INDEX_CONCEPTS_HPP

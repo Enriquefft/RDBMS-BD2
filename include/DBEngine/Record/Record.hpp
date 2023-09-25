@@ -5,6 +5,7 @@
 #include <limits>
 #include <ranges>
 #include <spdlog/spdlog.h>
+#include <type_traits>
 #ifdef __clang__
 #pragma clang diagnostic ignored "-Wexit-time-destructors"
 #pragma clang diagnostic ignored "-Wglobal-constructors"
@@ -17,6 +18,14 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+
+template <typename Func, typename... Args>
+using func_return = std::invoke_result<
+    Func,
+    std::conditional_t<std::is_same_v<Args, std::string>, int, std::string>...>;
+
+template <typename Func, typename... Args>
+concept returns_void = std::is_same_v<func_return<Func, Args...>, void>;
 
 namespace DB_ENGINE {
 
@@ -148,119 +157,105 @@ inline auto stob(std::string str) -> bool {
                  [](unsigned char c) { return std::toupper(c); });
 
   static std::unordered_set<std::string> valid_strings = {
-      "YES", "Y", "SI", "S", "V", "VERDADERO", "T", "TRUE"};
+      "YES", "Y", "SI", "S", "V", "VERDADERO", "T", "TRUE", "1"};
   return valid_strings.contains(str);
 }
 
-template <typename Func>
-inline void cast_and_execute(Type::types type,
-                             const std::string &attribute_value, Func func) {
-  spdlog::info("Casting {} ", attribute_value);
+template <typename Func, typename... Attributes>
+  requires(std::convertible_to<Attributes, std::string> && ...)
+inline void cast_and_execute(Type::types type, Func function,
+                             const Attributes &...atts) {
+
   switch (type) {
   case Type::types::INT: {
-    spdlog::info("Casting {} to int", attribute_value);
-    int key_value = std::stoi(attribute_value);
-    func(key_value);
+    function(std::stoi(atts)...);
     break;
   }
   case Type::types::FLOAT: {
-    float key_value = std::stof(attribute_value);
-    func(key_value);
+    function(std::stof(atts)...);
     break;
   }
   case Type::types::BOOL: {
-    bool key_value = stob(attribute_value);
-    func(key_value);
+    function(stob(atts)...);
     break;
   }
   case Type::types::VARCHAR: {
-    func(attribute_value);
+    function(atts...);
+    break;
+  }
+  }
+}
+template <typename T = void, typename Func, typename... Attributes>
+  requires(std::convertible_to<Attributes, std::string> && ...)
+inline auto cast_and_execute(Type::types type, Func function,
+                             const Attributes &...atts) -> T {
+
+  switch (type) {
+  case Type::types::INT: {
+    return function(std::stoi(atts)...);
+    break;
+  }
+  case Type::types::FLOAT: {
+    return function(std::stof(atts)...);
+    break;
+  }
+  case Type::types::BOOL: {
+    return function(stob(atts)...);
+    break;
+  }
+  case Type::types::VARCHAR: {
+    return function(atts...);
     break;
   }
   }
 }
 
-template <typename Func>
-inline void key_cast_and_execute(Type::types type,
-                                 const std::string &attribute_value,
-                                 Func func) {
-  switch (type) {
-  case Type::types::INT: {
-    spdlog::info("Casting {} to int", attribute_value);
-    int key_value = std::stoi(attribute_value);
-    func(key_value);
-    break;
-  }
-  case Type::types::FLOAT: {
-    float key_value = std::stof(attribute_value);
-    func(key_value);
-    break;
-  }
-  case Type::types::BOOL: {
-    spdlog::error("Bool key is not supported");
-    break;
-  }
-  // case Type::types::VARCHAR: {
-  //   func(attribute_value);
-  //   break;
-  // }
-  // }
-  case Type::types::VARCHAR:
-    break;
-  }
-}
+// Keys can't be bool or varchar
+template <typename Func, typename... Attributes>
+  requires(std::convertible_to<Attributes, std::string> && ...)
+inline void key_cast_and_execute(Type::types type, Func function,
+                                 const Attributes &...atts) {
 
-template <typename Func>
-inline void cast_and_execute(Type::types type, const std::string &att1,
-                             const std::string &att2, Func func) {
   switch (type) {
-  case Type::types::INT: {
-    int value_1 = std::stoi(att1);
-    int value_2 = std::stoi(att2);
-    func(value_1, value_2);
-    break;
-  }
-  case Type::types::FLOAT: {
-    float value_1 = std::stof(att1);
-    float value_2 = std::stof(att2);
-    func(value_1, value_2);
-    break;
-  }
   case Type::types::BOOL: {
-    bool value_1 = stob(att1);
-    bool value_2 = stob(att2);
-    func(value_1, value_2);
-    break;
+    spdlog::error("Attempting key conversion to bool");
+    throw std::invalid_argument("Keys can't be bool");
   }
   case Type::types::VARCHAR: {
-    func(att1, att2);
+    spdlog::error("Attempting key conversion to string");
+    throw std::invalid_argument("Keys can't be varchar");
+  }
+  case Type::types::INT: {
+    function(std::stoi(atts)...);
+    break;
+  }
+  case Type::types::FLOAT: {
+    function(std::stof(atts)...);
     break;
   }
   }
 }
 
-template <typename Func>
-inline void key_cast_and_execute(Type::types type, const std::string &att1,
-                                 const std::string &att2, Func func) {
+template <typename Func, typename... Attributes>
+inline auto key_cast_and_execute_ret(Type::types type, Func function,
+                                     const Attributes &...atts)
+    -> func_return<Func, Attributes...> {
+
   switch (type) {
+  case Type::types::BOOL: {
+    spdlog::error("Attempting key conversion to bool");
+    throw std::invalid_argument("Keys can't be bool");
+  }
+  case Type::types::VARCHAR: {
+    spdlog::error("Attempting key conversion to string");
+    throw std::invalid_argument("Keys can't be varchar");
+  }
   case Type::types::INT: {
-    int value_1 = std::stoi(att1);
-    int value_2 = std::stoi(att2);
-    func(value_1, value_2);
+    return function(std::stoi(atts)...);
     break;
   }
   case Type::types::FLOAT: {
-    float value_1 = std::stof(att1);
-    float value_2 = std::stof(att2);
-    func(value_1, value_2);
-    break;
-  }
-  case Type::types::BOOL: {
-    spdlog::error("Bool key is not supported");
-    break;
-  }
-  case Type::types::VARCHAR: {
-    func(att1, att2);
+    return function(std::stof(atts)...);
     break;
   }
   }

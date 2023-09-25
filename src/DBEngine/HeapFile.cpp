@@ -3,8 +3,11 @@
 #include "Record/Record.hpp"
 #include "Utils/File.hpp"
 
+#include <bits/chrono.h>
+#include <chrono>
 #include <iostream>
 #include <numeric>
+#include <response.hpp>
 #include <spdlog/common.h>
 #include <spdlog/spdlog.h>
 #include <utility>
@@ -43,7 +46,8 @@ HeapFile::TableMetadata::TableMetadata(
       attribute_types(std::move(_attribute_types)),
       primary_key(std::move(_primary_key)) {}
 
-auto HeapFile::load() -> std::vector<Record> {
+auto HeapFile::load()
+    -> std::pair<std::vector<Record>, std::chrono::milliseconds> {
 
   spdlog::info("Loading all data");
 
@@ -60,12 +64,15 @@ auto HeapFile::load() -> std::vector<Record> {
   std::vector<Record> records(m_metadata.record_count);
   spdlog::info("Found {} records", m_metadata.record_count);
 
+  auto start_time = std::chrono::high_resolution_clock::now();
   for (auto &record : records) {
     record.read(m_file_stream, m_metadata.attribute_types);
   }
+  auto end_time = std::chrono::high_resolution_clock::now();
 
   m_file_stream.close();
-  return records;
+  return {records, std::chrono::duration_cast<std::chrono::milliseconds>(
+                       end_time - start_time)};
 }
 
 auto HeapFile::add(const Record &record) -> pos_type {
@@ -86,32 +93,33 @@ auto HeapFile::add(const Record &record) -> pos_type {
 }
 
 auto HeapFile::bulk_insert(const std::vector<Record> &records)
-    -> std::vector<pos_type> {
-
-  spdlog::info("Bulk inserting on heap file");
+    -> ::Index::Response {
 
   m_file_stream.open(m_table_path + DATA_FILE,
                      std::ios::binary | std::ios::out);
   auto initial_pos = next_pos();
   m_file_stream.seekp(initial_pos, std::ios::beg);
 
-  for (const auto &rec : records) {
-    std::cout << "Inserting record at pos " << m_file_stream.tellp() << '\n';
-    rec.write(m_file_stream, m_metadata.attribute_types);
-  }
-
   std::vector<pos_type> positions(records.size());
 
-  for (auto i = 0; auto &position : positions) {
-    position = initial_pos + static_cast<std::streamoff>(i) * get_record_size();
-    i++;
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  for (ulong idx = 0; const auto &rec : records) {
+    rec.write(m_file_stream, m_metadata.attribute_types);
+    positions.at(idx) =
+        initial_pos + static_cast<std::streamoff>(idx) * get_record_size();
+    idx++;
   }
+  auto end_time = std::chrono::high_resolution_clock::now();
+
   m_file_stream.close();
 
   m_metadata.record_count += records.size();
   write_metadata();
 
-  return positions;
+  return {std::move(positions),
+          std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                start_time)};
 }
 
 auto HeapFile::next_pos() const -> pos_type {
@@ -124,9 +132,11 @@ auto HeapFile::next_pos() const -> pos_type {
   return pos;
 }
 
-auto HeapFile::read(const pos_type &pos) -> Record {
-  m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
+auto HeapFile::read(const pos_type &pos) -> std::pair<Record, time_t> {
 
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
   m_file_stream.seekg(pos, std::ios::beg);
 
   Record record;
@@ -134,10 +144,36 @@ auto HeapFile::read(const pos_type &pos) -> Record {
   record.read(m_file_stream, m_metadata.attribute_types);
   m_file_stream.close();
 
-  return record;
+  auto end_time = std::chrono::high_resolution_clock::now();
+
+  return {record, std::chrono::duration_cast<time_t>(end_time - start_time)};
 }
 
-auto HeapFile::remove(const pos_type &pos) -> bool {
+auto HeapFile::read(const std::vector<pos_type> &positions)
+    -> std::pair<std::vector<Record>, time_t> {
+
+  std::vector<Record> response(positions.size());
+  auto start_time = std::chrono::high_resolution_clock::now();
+
+  m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
+
+  for (ulong idx = 0; const auto &pos : positions) {
+    m_file_stream.seekg(pos, std::ios::beg);
+    response.at(idx).read(m_file_stream, m_metadata.attribute_types);
+    idx++;
+  }
+
+  m_file_stream.close();
+
+  auto end_time = std::chrono::high_resolution_clock::now();
+
+  return {response, std::chrono::duration_cast<time_t>(end_time - start_time)};
+}
+
+auto HeapFile::remove(const pos_type &pos) -> std::pair<bool, time_t> {
+
+  auto start_time = std::chrono::high_resolution_clock::now();
+
   m_file_stream.open(m_table_path + DATA_FILE,
                      std::ios::binary | std::ios::out);
   m_file_stream.seekg(pos, std::ios::beg);
@@ -151,7 +187,10 @@ auto HeapFile::remove(const pos_type &pos) -> bool {
 
   m_file_stream.close();
 
-  return succes.good();
+  auto end_time = std::chrono::high_resolution_clock::now();
+
+  return {succes.good(),
+          std::chrono::duration_cast<time_t>(end_time - start_time)};
 }
 
 void HeapFile::update_first_deleted(pos_type pos) {

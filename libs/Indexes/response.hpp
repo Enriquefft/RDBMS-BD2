@@ -7,9 +7,13 @@ namespace Index {
 
 struct Response {
   std::vector<physical_pos> records;
-  std::chrono::milliseconds query_time;
+  std::chrono::milliseconds query_time{};
 
-  Response() {}
+  Response() = default;
+
+  Response(std::vector<physical_pos> &&rec,
+           const std::chrono::milliseconds &time)
+      : records(std::move(rec)), query_time(time) {}
 
   void startTimer() { start_time = std::chrono::high_resolution_clock::now(); }
 

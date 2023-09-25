@@ -57,7 +57,7 @@ struct IndexContainer {
     return std::get<IndexType<T>>(m_idx).bulk_insert(elements);
   }
 
-  std::variant<IndexType<int>, IndexType<float>, IndexType<std::string>> m_idx;
+  std::variant<IndexType<int>, IndexType<float>> m_idx;
 };
 
 struct SequentialIndexContainer : public IndexContainer<SequentialIndex> {

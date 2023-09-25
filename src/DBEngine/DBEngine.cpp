@@ -19,6 +19,7 @@
 
 #include "Constants.hpp"
 #include "DBEngine.hpp"
+#include "Record/Record.hpp"
 
 using DB_ENGINE::DBEngine;
 
@@ -94,15 +95,12 @@ auto DBEngine::create_table(const std::string &table_name,
     break;
   }
   case Type::VARCHAR: {
-    SequentialIndex<std::string> sequential_index_str(table_name, primary_key,
-                                                      true);
-    m_sequential_indexes.insert(
-        {{table_name, primary_key},
-         SequentialIndexContainer(sequential_index_str)});
-    break;
+    spdlog::error("Varchar can't be indexed. at: table_creation");
+    throw std::invalid_argument("Varchar can't be indexed");
   }
   case Type::BOOL: {
     spdlog::error("Bool can't be indexed. at: table_creation");
+    throw std::invalid_argument("Bool can't be indexed");
   }
   }
 
@@ -130,32 +128,31 @@ auto DBEngine::search(const std::string &table_name, const Attribute &key,
 
   auto key_type = m_tables_raw.at(table_name).get_type(key);
 
-  key_cast_and_execute(key_type.type, key.value,
-                       [this, &key, &times, &positions](auto key_value) {
-                         for (const auto &idx : m_sequential_indexes) {
-                           if (idx.second.get_attribute_name() == key.name) {
+  key_cast_and_execute(
+      key_type.type,
+      [this, &key, &times, &positions](ValidIndexType auto key_value) {
+        for (const auto &idx : m_sequential_indexes) {
+          if (idx.second.get_attribute_name() == key.name) {
 
-                             auto search_response =
-                                 idx.second.search(key_value);
-                             positions = search_response.first;
-                             times["SEQUENTIAL_SINGLE_SEARCH"] =
-                                 search_response.second;
-                             break;
-                           }
-                         }
-                       });
+            auto search_response = idx.second.search(key_value);
+            positions = search_response.first;
+            times["SEQUENTIAL_SINGLE_SEARCH"] = search_response.second;
+            break;
+          }
+        }
+      },
+      key.value);
 
-  std::vector<Record> response;
+  auto heap_response = m_tables_raw.at(table_name).read(positions);
+  times["HEAP_BULK_READ"] = heap_response.second;
 
-  for (const auto &pos : positions) {
-    auto rec = m_tables_raw.at(table_name).read(pos);
+  heap_response.first.erase(
+      std::remove_if(heap_response.first.begin(), heap_response.first.end(),
+                     [&expr](const auto &record) { return !expr(record); }),
+      heap_response.first.end());
 
-    if (expr(rec)) {
-      response.push_back(rec);
-    }
-  }
   return m_tables_raw.at(table_name)
-      .filter(response, selected_attributes, times);
+      .filter(heap_response.first, selected_attributes, times);
 }
 auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
                             Attribute end_key,
@@ -163,8 +160,10 @@ auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
                             const std::vector<std::string> &selected_attributes)
     -> QueryResponse {
 
+  query_time_t times;
+
   if (begin_key == KEY_LIMITS::MIN && end_key == KEY_LIMITS::MAX) {
-    QueryResponse response = load(table_name, selected_attributes);
+    QueryResponse response = load(table_name, selected_attributes, times);
 
     response.records.erase(
         std::remove_if(response.records.begin(), response.records.end(),
@@ -193,14 +192,14 @@ auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
   spdlog::info("Range search values: {}, {}", begin_key.value, end_key.value);
 
   std::vector<HeapFile::pos_type> positions;
-  query_time_t times;
 
   auto key_type = m_tables_raw.at(table_name).get_type(begin_key);
 
   key_cast_and_execute(
-      key_type.type, begin_key.value, end_key.value,
-      [this, &positions, &begin_key, &times](auto begin_key_value,
-                                             auto end_key_value) {
+      key_type.type,
+      [this, &positions, &begin_key,
+       &times](ValidIndexType auto begin_key_value,
+               ValidIndexType auto end_key_value) {
         for (const auto &idx : m_sequential_indexes) {
           if (idx.second.get_attribute_name() == begin_key.name) {
             auto idx_response =
@@ -209,42 +208,38 @@ auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
             times["SEQUENTIAL_RANGE_SEARCH"] = idx_response.query_time;
           }
         }
-      });
+      },
+      begin_key.value, end_key.value);
 
-  spdlog::info("Positions:");
-  for (const auto &pos : positions) {
-    spdlog::info("{}", static_cast<std::streamoff>(pos));
-  }
+  auto heap_response = m_tables_raw.at(table_name).read(positions);
+  times["HEAP_BULK_READ"] = heap_response.second;
 
-  std::vector<Record> response;
+  heap_response.first.erase(
+      std::remove_if(heap_response.first.begin(), heap_response.first.end(),
+                     [&expr](const auto &record) { return !expr(record); }),
+      heap_response.first.end());
 
-  for (const auto &pos : positions) {
-    auto rec = m_tables_raw.at(table_name).read(pos);
-
-    if (expr(rec)) {
-      response.push_back(rec);
-    }
-  }
   return m_tables_raw.at(table_name)
-      .filter(response, selected_attributes, times);
+      .filter(heap_response.first, selected_attributes, times);
 }
 
 auto DBEngine::load(const std::string &table_name,
                     const std::vector<std::string> &selected_attributes)
     -> QueryResponse {
+  query_time_t times;
+  return load(table_name, selected_attributes, times);
+}
 
-  auto start = std::chrono::high_resolution_clock::now();
+auto DBEngine::load(const std::string &table_name,
+                    const std::vector<std::string> &selected_attributes,
+                    query_time_t &times) -> QueryResponse {
+
   auto response = m_tables_raw.at(table_name).load();
-  auto end = std::chrono::high_resolution_clock::now();
 
-  auto duration =
-      std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-  query_time_t times{{"LOAD", duration}};
-
-  spdlog::info("Response size: {}", response.size());
+  times["HEAP_FILE_LOAD"] = response.second;
 
   return m_tables_raw.at(table_name)
-      .filter(response, selected_attributes, times);
+      .filter(response.first, selected_attributes, times);
 }
 
 auto DBEngine::add(const std::string &table_name,
@@ -263,22 +258,18 @@ auto DBEngine::add(const std::string &table_name,
   response_time time;
 
   bool pk_inserted = false;
-  for (auto &idx : m_sequential_indexes) {
-    if (idx.first.table == table_name && idx.first.attribute_name == key.name) {
 
-      spdlog::info("value to cast: {}", key.value);
+  // Insert into primery key index
 
-      key_cast_and_execute(
-          type.type, key.value,
-          [&idx, &inserted_pos, &pk_inserted, &time](auto key_val) {
-            spdlog::info("adding to sequential: {} {}", key_val,
-                         static_cast<std::streamoff>(inserted_pos));
-            auto add_response = idx.second.add(key_val, inserted_pos);
-            pk_inserted = add_response.first;
-            time = add_response.second;
-          });
-    }
-  }
+  auto idx = m_sequential_indexes.at({table_name, key.name});
+  key_cast_and_execute(
+      type.type,
+      [&idx, &inserted_pos, &pk_inserted, &time](ValidIndexType auto key_val) {
+        auto add_response = idx.add(key_val, inserted_pos);
+        pk_inserted = add_response.first;
+        time = add_response.second;
+      },
+      key.value);
 
   if (!pk_inserted) {
     spdlog::info("Record with key {} already exists", key.name);
@@ -288,38 +279,52 @@ auto DBEngine::add(const std::string &table_name,
   // Insert whole record
   m_tables_raw.at(table_name).add(rec);
 
+  throw std::runtime_error("simple add on other indexes not implemented");
   // Insert into indexes
+  // for (auto & idx : m_sequential_indexes){
+  //
+  // }
 
   return pk_inserted;
 }
 
-auto DBEngine::remove(const std::string &table_name, const Attribute &key)
-    -> bool {
+auto DBEngine::remove(const std::string &table_name,
+                      const Attribute &key_str_value)
+    -> std::pair<query_time_t, bool> {
 
-  response_time time;
+  auto [key_type, key_name] = m_tables_raw.at(table_name).get_key_name();
+
+  query_time_t times;
   HeapFile::pos_type raw_pos;
-  for (const auto &idx : m_sequential_indexes) {
-    if (idx.first.table == table_name) {
-      auto type = m_tables_raw.at(table_name).get_type(key);
-      key_cast_and_execute(
-          type.type, key.value, [&raw_pos, &idx, &time](auto key_value) {
-            auto remove_response = idx.second.remove(key_value);
-            raw_pos = remove_response.first;
-            time = remove_response.second;
-          });
-    }
-  }
+
+  auto idx = m_sequential_indexes.at({table_name, key_name});
+
+  key_cast_and_execute(
+      key_type.type,
+      [&raw_pos, &idx, &times](ValidIndexType auto key_value) {
+        auto remove_response = idx.remove(key_value);
+        raw_pos = remove_response.first;
+        times["REMOVE_FROM_PK"] = remove_response.second;
+      },
+      key_str_value.value);
+
   if (raw_pos == -1) {
-    return false;
+    return {times, false};
   }
 
   m_tables_raw.at(table_name).remove(raw_pos);
-  return true;
+
+  // Remove from other indexes
+  throw std::runtime_error("Not yet implemented");
+
+  return {times, true};
 }
 
-void DBEngine::create_index(const std::string &table_name,
-                            const std::string &column_name,
-                            const Index_t &index_type) {
+DB_ENGINE::query_time_t DBEngine::create_index(const std::string &table_name,
+                                               const std::string &column_name,
+                                               const Index_t &index_type) {
+
+  query_time_t times;
 
   auto record_size = m_tables_raw.at(table_name).get_record_size();
   auto pos_getter = [&record_size]() {
@@ -329,23 +334,32 @@ void DBEngine::create_index(const std::string &table_name,
     return prev_pos;
   };
 
-  const auto TYPE = m_tables_raw.at(table_name).get_type(column_name);
-
-  // type
+  // Early return clause
   switch (index_type) {
   case Index_t::AVL: {
-    spdlog::info("Creating avl index for {} {}", table_name, column_name);
+    if (m_avl_indexes.contains({table_name, column_name})) {
+      spdlog::warn("Index already exists");
+      throw std::invalid_argument("Index already exists");
+    }
     break;
   }
   case Index_t::ISAM: {
-    spdlog::info("Creating isam index for {} {}", table_name, column_name);
+    if (m_isam_indexes.contains({table_name, column_name})) {
+      spdlog::warn("Index already exists");
+      throw std::invalid_argument("Index already exists");
+    }
     break;
   }
   case Index_t::SEQUENTIAL: {
-    spdlog::info("Creating seq index for {} {}", table_name, column_name);
+    if (m_sequential_indexes.contains({table_name, column_name})) {
+      spdlog::warn("Index already exists");
+      throw std::invalid_argument("Index already exists");
+    }
     break;
   }
   }
+
+  const auto TYPE = m_tables_raw.at(table_name).get_type(column_name);
 
   if (TYPE.type == Type::BOOL) {
     spdlog::error("Bool can't be indexed. at: create_index");
@@ -353,13 +367,19 @@ void DBEngine::create_index(const std::string &table_name,
   }
 
   key_cast_and_execute(
-      TYPE.type, get_sample_value(TYPE),
-      [&index_type, &table_name, &column_name, this, &TYPE,
-       &pos_getter](auto value) {
+      TYPE.type,
+      [&index_type, &table_name, &column_name, this, &TYPE, &pos_getter,
+       &times](ValidIndexType auto value) {
         using att_type = decltype(value);
 
         std::vector<std::pair<att_type, std::streampos>> key_values;
-        auto all_records = load(table_name, {column_name}).records;
+        auto load_response = load(table_name, {column_name}, times);
+
+        auto all_records = load_response.records;
+        key_values.reserve(all_records.size());
+
+        auto start_time = std::chrono::high_resolution_clock::now();
+
         std::transform(
             all_records.begin(), all_records.end(),
             std::back_inserter(key_values), [&TYPE, &pos_getter](auto record) {
@@ -371,7 +391,11 @@ void DBEngine::create_index(const std::string &table_name,
               switch (TYPE.type) {
 
               case Type::BOOL:
+                spdlog::error("Bool can't be indexed. at: create_index");
+                throw std::invalid_argument("Bool can't be indexed");
               case Type::VARCHAR:
+                spdlog::error("VARCHAR can't be indexed. at: create_index");
+                throw std::invalid_argument("VARCHAR can't be indexed");
                 break;
 
               case Type::INT:
@@ -384,46 +408,47 @@ void DBEngine::create_index(const std::string &table_name,
               }
               return return_v;
             });
+        auto end_time = std::chrono::high_resolution_clock::now();
+
+        times["GENERATE_VEC_OF_PAIRS"] =
+            std::chrono::duration_cast<std::chrono::milliseconds>(end_time -
+                                                                  start_time);
 
         switch (index_type) {
         case Index_t::AVL: {
 
-          if (m_avl_indexes.contains({table_name, column_name})) {
-            spdlog::warn("Index already exists");
-            throw std::invalid_argument("Index already exists");
-          }
           AVLIndex<att_type> idx(table_name, column_name, false);
           m_avl_indexes.emplace(Index(table_name, column_name), idx);
-          m_avl_indexes.at({table_name, column_name})
-              .bulk_insert<att_type>(key_values);
+          times["AVL_BULK_INSERTION"] =
+              m_avl_indexes.at({table_name, column_name})
+                  .bulk_insert<att_type>(key_values)
+                  .first.query_time;
           break;
         }
         case Index_t::SEQUENTIAL: {
-          if (m_avl_indexes.contains({table_name, column_name})) {
-            spdlog::warn("Index already exists");
-            throw std::invalid_argument("Index already exists");
-          }
 
           SequentialIndex<att_type> idx(table_name, column_name, false);
           m_sequential_indexes.emplace(Index(table_name, column_name), idx);
-          m_sequential_indexes.at({table_name, column_name})
-              .bulk_insert<att_type>(key_values);
+          times["SEQUENTIAL_BULK_INSERTION"] =
+              m_sequential_indexes.at({table_name, column_name})
+                  .bulk_insert<att_type>(key_values)
+                  .first.query_time;
           break;
         }
         case Index_t::ISAM: {
-          if (m_avl_indexes.contains({table_name, column_name})) {
-            spdlog::warn("Index already exists");
-            throw std::invalid_argument("Index already exists");
-          }
           SequentialIndex<att_type> idx(table_name, column_name, false);
           m_isam_indexes.emplace(Index(table_name, column_name), idx);
-          m_isam_indexes.at({table_name, column_name})
-              .bulk_insert<att_type>(key_values);
+          times["ISAM_BULK_INSERTION"] =
+              m_isam_indexes.at({table_name, column_name})
+                  .bulk_insert<att_type>(key_values)
+                  .first.query_time;
 
           break;
         }
         }
-      });
+      },
+      get_sample_value(TYPE));
+  return times;
 }
 
 enum class INDEX_OPTION : uint8_t {
@@ -480,23 +505,19 @@ struct IndexInsert {
     return std::get<std::vector<T>>(values).size();
   }
 
-  std::variant<std::vector<int>, std::vector<float>, std::vector<std::string>>
-      values;
+  std::variant<std::vector<int>, std::vector<float>> values;
 };
 
 template <ValidType T>
-static void handle_option(const INDEX_OPTION &option,
-                          const IndexInsert &inserted_keys,
-                          const std::vector<bool> &pk_insertion,
-                          std::optional<AvlIndexContainer> avl, auto sequential,
-                          auto isam, const auto &get_pos) {
+auto handle_option(const INDEX_OPTION &option, const IndexInsert &inserted_keys,
+                   const std::vector<bool> &pk_insertion,
+                   std::optional<AvlIndexContainer> avl, auto sequential,
+                   auto isam, const auto &get_pos,
+                   DB_ENGINE::query_time_t &times) -> void {
 
-  spdlog::info("Inserting into {}", static_cast<uint8_t>(option));
-  spdlog::info("values");
-  spdlog::info("NONE {}", static_cast<uint8_t>(INDEX_OPTION::NONE));
-  spdlog::info("avl {}", static_cast<uint8_t>(INDEX_OPTION::AVL));
-  spdlog::info("isam {}", static_cast<uint8_t>(INDEX_OPTION::ISAM));
-  spdlog::info("seq {}", static_cast<uint8_t>(INDEX_OPTION::SEQUENTIAL));
+  if (option == INDEX_OPTION::NONE) {
+    return;
+  }
 
   std::bitset<3> options(static_cast<uint8_t>(option));
 
@@ -510,24 +531,41 @@ static void handle_option(const INDEX_OPTION &option,
     }
   }
 
+  std::jthread avl_insert;
   if (options.test(0)) {
     spdlog::info("Found avl");
-    std::jthread avl_insert([&avl, &inserted_indexes]() {
-      avl.value().template bulk_insert<T>(inserted_indexes);
+    avl_insert = std::jthread([&avl, &inserted_indexes, &times]() {
+      times["AVL_BULK_INSERTION"] =
+          avl.value()
+              .template bulk_insert<T>(inserted_indexes)
+              .first.query_time;
     });
   }
+  std::jthread isam_insert;
   if (options.test(1)) {
     spdlog::info("Found isam");
-    std::jthread isam_insert([&isam, &inserted_indexes]() {
-      isam.value().template bulk_insert<T>(inserted_indexes);
+    isam_insert = std::jthread([&isam, &inserted_indexes, &times]() {
+      times["AVL_BULK_INSERTION"] =
+          isam.value()
+              .template bulk_insert<T>(inserted_indexes)
+              .first.query_time;
     });
   }
+  std::jthread sequential_insert;
   if (options.test(2)) {
     spdlog::info("Found seq");
-    std::jthread sequential_insert([&sequential, &inserted_indexes]() {
-      sequential.value().bulk_insert(inserted_indexes);
-    });
+    sequential_insert =
+        std::jthread([&sequential, &inserted_indexes, &times]() {
+          times["AVL_BULK_INSERTION"] =
+              sequential.value()
+                  .template bulk_insert<T>(inserted_indexes)
+                  .first.query_time;
+        });
   }
+
+  avl_insert.join();
+  isam_insert.join();
+  sequential_insert.join();
 }
 
 static auto generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
@@ -552,12 +590,7 @@ static auto generate_key_output(const std::vector<DB_ENGINE::Type> &field_types,
       inserted_keys.at(idx).reserve<float>(min_record_count);
       break;
     }
-    case DB_ENGINE::Type::VARCHAR: {
-      IndexInsert insert_vec((std::vector<std::string>()));
-      inserted_keys.at(idx) = insert_vec;
-      inserted_keys.at(idx).reserve<std::string>(min_record_count);
-      break;
-    }
+    case DB_ENGINE::Type::VARCHAR:
     case DB_ENGINE::Type::BOOL:
       break;
     }
@@ -586,13 +619,9 @@ void insert_field(const auto &field, const ulong &curr_field,
             std::stof(std::string(field.begin(), field.end())));
     break;
   }
-  case DB_ENGINE::Type::VARCHAR: {
-    inserted_keys.at(curr_field)
-        .template emplace_back<std::string>(field.begin(), field.end());
-    break;
-  }
+  case DB_ENGINE::Type::VARCHAR:
   case DB_ENGINE::Type::BOOL:
-    spdlog::info("Bool was not inserted");
+    spdlog::info("a value was not inserted(VCH or BOOL)");
     break;
   }
 }
@@ -606,8 +635,8 @@ auto get_idx(std::string table_name, std::string attribute_name, T idx_map)
   return std::nullopt;
 }
 
-void DBEngine::csv_insert(const std::string &table_name,
-                          const std::filesystem::path &file) {
+auto DBEngine::csv_insert(const std::string &table_name,
+                          const std::filesystem::path &file) -> query_time_t {
 
   auto rec_size = m_tables_raw.at(table_name).get_record_size();
   auto pos_getter = [&table_name, this, &rec_size]() {
@@ -653,123 +682,142 @@ void DBEngine::csv_insert(const std::string &table_name,
 
   std::jthread pk_insertion;
 
-  key_cast_and_execute(key_type.type, key_value, [&](auto sample) {
-    // Iterate records
-    using pk_type = decltype(sample);
+  query_time_t times;
 
-    if (std::is_same_v<int, pk_type>) {
-      spdlog::info("inserting with key==int");
-    }
+  key_cast_and_execute(
+      key_type.type,
+      [&](ValidIndexType auto sample) {
+        // Iterate records
+        using pk_type = decltype(sample);
 
-    std::vector<std::pair<pk_type, std::streampos>> pk_values;
+        if (std::is_same_v<int, pk_type>) {
+          spdlog::info("inserting with key==int");
+        }
 
-    if (std::is_same_v<std::vector<std::pair<int, std::streampos>>,
-                       decltype(pk_values)>) {
-      spdlog::info("inserting into pk_values ==vec int");
-    }
+        std::vector<std::pair<pk_type, std::streampos>> pk_values;
 
-    auto pk_init_size = SequentialIndex<pk_type>::MIN_BULK_INSERT_SIZE::value /
-                        sizeof(std::pair<pk_type, HeapFile::pos_type>);
-    pk_values.reserve(min_record_count);
+        if (std::is_same_v<std::vector<std::pair<int, std::streampos>>,
+                           decltype(pk_values)>) {
+          spdlog::info("inserting into pk_values ==vec int");
+        }
 
-    std::vector<Record> records;
-    while (std::getline(csv_stream, current_line)) {
+        auto pk_init_size =
+            SequentialIndex<pk_type>::MIN_BULK_INSERT_SIZE::value /
+            sizeof(std::pair<pk_type, HeapFile::pos_type>);
+        pk_values.reserve(min_record_count);
 
-      auto fields = current_line | std::ranges::views::split(',');
-      records.emplace_back(fields);
+        std::vector<Record> records;
+        while (std::getline(csv_stream, current_line)) {
 
-      // Iterate fields
-      for (ulong curr_field = 0; auto field : fields) {
+          auto fields = current_line | std::ranges::views::split(',');
+          records.emplace_back(fields);
 
-        insert_field(field, curr_field, field_types, inserted_keys);
+          // Iterate fields
+          for (ulong curr_field = 0; auto field : fields) {
 
-        if (curr_field == primary_key_idx) {
+            insert_field(field, curr_field, field_types, inserted_keys);
 
-          key_value = std::string(field.begin(), field.end());
+            if (curr_field == primary_key_idx) {
 
-          switch (key_type.type) {
+              key_value = std::string(field.begin(), field.end());
 
-          case Type::BOOL: {
-            spdlog::warn("Bool can't be pk");
-            break;
-          }
+              switch (key_type.type) {
 
-          case Type::INT: {
-            std::pair<int, std::streampos> i =
-                std::make_pair(stoi(key_value), pos_getter());
-            pk_values.push_back(i);
-            break;
-          }
+              case Type::BOOL: {
+                spdlog::warn("Bool can't be pk");
+                break;
+              }
 
-          case Type::FLOAT: {
-            std::pair<float, std::streampos> i =
-                std::make_pair(stof(key_value), pos_getter());
-            pk_values.push_back(i);
-            break;
-          }
+              case Type::INT: {
+                std::pair<int, std::streampos> i =
+                    std::make_pair(stoi(key_value), pos_getter());
+                pk_values.push_back(i);
+                break;
+              }
 
-            // case Type::VARCHAR: {
-            //   std::pair<std::string, std::streampos> i =
-            //       std::make_pair(key_value, pos_getter());
-            //
-            //   pk_values.push_back(i);
-            //
-            //   break;
-            // }
-          }
+              case Type::FLOAT: {
+                std::pair<float, std::streampos> i =
+                    std::make_pair(stof(key_value), pos_getter());
+                pk_values.push_back(i);
+                break;
+              }
 
-          if (curr_field > pk_init_size) {
-            pk_insertion = std::jthread([&inserted_indexes, &table_name,
-                                         &key_name, &pk_values, this]() {
-              spdlog::info("Bulk inserting pk - 1");
-              auto bulk_insert_response =
-                  m_sequential_indexes.at({table_name, key_name})
-                      .bulk_insert<pk_type>(pk_values);
-              inserted_indexes = bulk_insert_response.second;
-            });
+                // case Type::VARCHAR: {
+                //   std::pair<std::string, std::streampos> i =
+                //       std::make_pair(key_value, pos_getter());
+                //
+                //   pk_values.push_back(i);
+                //
+                //   break;
+                // }
+              }
+
+              if (curr_field > pk_init_size) {
+                pk_insertion =
+                    std::jthread([&inserted_indexes, &table_name, &key_name,
+                                  &pk_values, this, &times]() {
+                      spdlog::info("Bulk inserting pk - 1");
+                      auto bulk_insert_response =
+                          m_sequential_indexes.at({table_name, key_name})
+                              .bulk_insert<pk_type>(pk_values);
+                      inserted_indexes = bulk_insert_response.second;
+                      times["PK_BULK_INSERT"] =
+                          bulk_insert_response.first.query_time;
+                    });
+              }
+            }
+
+            curr_field++;
           }
         }
 
-        curr_field++;
-      }
-    }
+        table_heap.bulk_insert(records);
 
-    table_heap.bulk_insert(records);
+        if (pk_insertion.joinable()) {
+          pk_insertion.join();
+        }
 
-    if (pk_insertion.joinable()) {
-      pk_insertion.join();
-    }
+        spdlog::info("Inserting into primary key index n° - rest {}",
+                     pk_values.size());
 
-    spdlog::info("Inserting into primary key index n° - rest {}",
-                 pk_values.size());
+        for (const auto &elem : pk_values) {
+          std::cout << elem.first << ' ' << elem.second << '\n';
+        }
 
-    for (const auto &elem : pk_values) {
-      std::cout << elem.first << ' ' << elem.second << '\n';
-    }
+        auto rest_pk_insert = m_sequential_indexes.at({table_name, key_name})
+                                  .bulk_insert<pk_type>(pk_values);
+        auto inserted_bools = rest_pk_insert.second;
 
-    auto inserted_bools = m_sequential_indexes.at({table_name, key_name})
-                              .bulk_insert<pk_type>(pk_values)
-                              .second;
-    spdlog::info("Recieved bool count: {}", inserted_bools.size());
+        if (!times.contains("PK_BULK_INSERT")) {
+          times["PK_BULK_INSERT"] = decltype(times)::mapped_type{};
+        }
 
-    inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
-                            inserted_bools.end());
-  });
+        times["PK_BULK_INSERT"] += rest_pk_insert.first.query_time;
+
+        spdlog::info("Recieved bool count: {}", inserted_bools.size());
+
+        inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
+                                inserted_bools.end());
+      },
+      key_value);
 
   // get non-primary indexes
   std::vector<INDEX_OPTION> available_indexes;
   available_indexes.resize(field_types.size(), INDEX_OPTION::NONE);
 
   // Fill available_indexes
-  auto process_indexes = [&table_name, &available_indexes, &table_heap](
-                             const auto &indexes, INDEX_OPTION option) {
+  auto process_indexes = [&table_name, &available_indexes, &table_heap,
+                          &key_name](const auto &indexes, INDEX_OPTION option) {
     auto count = 0;
     for (const auto &[idx, UNUSED] : indexes) {
       if (idx.table == table_name) {
-        std::cout << "Found available index on :" << idx.attribute_name << ' '
-                  << count << ' ' << option << '\n';
-        available_indexes.at(
-            table_heap.get_attribute_idx(idx.attribute_name)) += option;
+
+        if (idx.attribute_name != key_name) {
+          std::cout << "\tFound available index on :" << idx.attribute_name
+                    << ' ' << count << ' ' << option << '\n';
+          available_indexes.at(
+              table_heap.get_attribute_idx(idx.attribute_name)) += option;
+        }
       }
       count++;
     }
@@ -794,7 +842,7 @@ void DBEngine::csv_insert(const std::string &table_name,
           get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
           get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
           get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
-          pos_getter);
+          pos_getter, times);
       break;
     case Type::FLOAT:
       handle_option<float>(
@@ -802,27 +850,22 @@ void DBEngine::csv_insert(const std::string &table_name,
           get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
           get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
           get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
-          pos_getter);
+          pos_getter, times);
       break;
     case Type::VARCHAR:
-      handle_option<std::string>(
-          idx, inserted_keys.at(idx_c), inserted_indexes,
-          get_idx(table_name, attribute_names.at(idx_c), m_avl_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_sequential_indexes),
-          get_idx(table_name, attribute_names.at(idx_c), m_isam_indexes),
-          pos_getter);
-      break;
     case Type::BOOL:
-      spdlog::error(
-          "Bool can't be indexed. at: inserting into available indexes.");
+      spdlog::warn("Bool or varchar can't be indexed. at: inserting into "
+                   "available indexes.");
       break;
     }
 
     idx_c++;
   }
+  return times;
 }
 
-auto DBEngine::csv_insert(const std::filesystem::path & /*file*/) -> bool {
+auto DBEngine::csv_insert(const std::filesystem::path & /*file*/)
+    -> query_time_t {
   return {};
 }
 
@@ -870,20 +913,21 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
   auto type = m_tables_raw.at(table_name).get_type(column_name);
   auto index = m_tables_raw.at(table_name).get_attribute_idx(column_name);
 
-  return [type, cmp, string_to_compare, index](const Record &record) {
+  return [type, cmp, string_to_compare, index](const Record &record) -> bool {
     auto attribute_raw = record.m_fields.at(index);
-    cast_and_execute(
-        type.type, string_to_compare, attribute_raw,
-        [&cmp](auto compare_value, auto record_value) {
+    return cast_and_execute<bool>(
+        type.type,
+        [&cmp](auto compare_value, auto record_value) -> bool {
           switch (cmp) {
           case EQUAL:
-            spdlog::error("EQUAL COMP = {}", record_value);
+            spdlog::info("EQUAL COMP = {}", record_value);
             if constexpr (std::is_same_v<decltype(compare_value), float>) {
               return compare_value - record_value < FLOAT_EPSILON;
             } else {
               return compare_value == record_value;
             }
           case LE:
+            spdlog::info("EQUAL LE = {}", record_value);
             return compare_value <= record_value;
           case G:
             return compare_value > record_value;
@@ -894,19 +938,24 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
             return compare_value >= record_value;
           }
           throw std::runtime_error("Not valid comparator");
-        });
+        },
+        string_to_compare, attribute_raw);
     return cmp == EQUAL;
   };
 }
 
-void DBEngine::sort_attributes(const std::string &table_name,
-                               std::vector<std::string> &attributes) const {
+auto DBEngine::sort_attributes(const std::string &table_name,
+                               const std::vector<std::string> &attributes) const
+    -> std::vector<std::string> {
   // sort based on m_tables_raw.get_attribute_idx(string) value
 
-  std::ranges::sort(attributes, [&](const auto &val1, const auto &val2) {
+  std::vector<std::string> sorted_attributes = attributes;
+  std::ranges::sort(sorted_attributes, [&](const auto &val1, const auto &val2) {
     return m_tables_raw.at(table_name).get_attribute_idx(val1) <
            m_tables_raw.at(table_name).get_attribute_idx(val2);
   });
+
+  return sorted_attributes;
 }
 
 void DBEngine::clean_table(const std::string &table_name) {
