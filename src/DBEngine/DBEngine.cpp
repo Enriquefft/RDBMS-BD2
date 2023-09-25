@@ -321,6 +321,14 @@ void DBEngine::create_index(const std::string &table_name,
                             const std::string &column_name,
                             const Index_t &index_type) {
 
+  auto record_size = m_tables_raw.at(table_name).get_record_size();
+  auto pos_getter = [&record_size]() {
+    // Starting pos
+    static std::streampos prev_pos = -record_size;
+    prev_pos += record_size;
+    return prev_pos;
+  };
+
   const auto TYPE = m_tables_raw.at(table_name).get_type(column_name);
 
   // type
@@ -346,35 +354,36 @@ void DBEngine::create_index(const std::string &table_name,
 
   key_cast_and_execute(
       TYPE.type, get_sample_value(TYPE),
-      [&index_type, &table_name, &column_name, this, &TYPE](auto value) {
+      [&index_type, &table_name, &column_name, this, &TYPE,
+       &pos_getter](auto value) {
         using att_type = decltype(value);
 
         std::vector<std::pair<att_type, std::streampos>> key_values;
         auto all_records = load(table_name, {column_name}).records;
-        std::transform(all_records.begin(), all_records.end(),
-                       std::back_inserter(key_values), [&TYPE](auto record) {
-                         auto str_val = record.m_fields.at(0);
-                         auto str_value =
-                             std::string(str_val.begin(), str_val.end());
+        std::transform(
+            all_records.begin(), all_records.end(),
+            std::back_inserter(key_values), [&TYPE, &pos_getter](auto record) {
+              auto str_val = record.m_fields.at(0);
+              auto str_value = std::string(str_val.begin(), str_val.end());
 
-                         std::pair<att_type, std::streampos> return_v;
+              std::pair<att_type, std::streampos> return_v;
 
-                         switch (TYPE.type) {
+              switch (TYPE.type) {
 
-                         case Type::BOOL:
-                         case Type::VARCHAR:
-                           break;
+              case Type::BOOL:
+              case Type::VARCHAR:
+                break;
 
-                         case Type::INT:
-                           return_v = {std::stoi(str_value), 4};
-                           break;
+              case Type::INT:
+                return_v = {std::stoi(str_value), pos_getter()};
+                break;
 
-                         case Type::FLOAT:
-                           return_v = {std::stof(str_value), 4};
-                           break;
-                         }
-                         return return_v;
-                       });
+              case Type::FLOAT:
+                return_v = {std::stof(str_value), pos_getter()};
+                break;
+              }
+              return return_v;
+            });
 
         switch (index_type) {
         case Index_t::AVL: {
@@ -600,13 +609,14 @@ auto get_idx(std::string table_name, std::string attribute_name, T idx_map)
 void DBEngine::csv_insert(const std::string &table_name,
                           const std::filesystem::path &file) {
 
-  auto pos_getter = [&table_name, this]() {
+  auto rec_size = m_tables_raw.at(table_name).get_record_size();
+  auto pos_getter = [&table_name, this, &rec_size]() {
     // Starting pos
     static std::streampos prev_pos =
         m_tables_raw.at(table_name).next_pos() -
         static_cast<std::streampos>(
             m_tables_raw.at(table_name).get_record_size());
-    prev_pos += m_tables_raw.at(table_name).get_record_size();
+    prev_pos += rec_size;
     return prev_pos;
   };
 
@@ -861,7 +871,7 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
   auto index = m_tables_raw.at(table_name).get_attribute_idx(column_name);
 
   return [&type, &cmp, &string_to_compare, &index](const Record &record) {
-    const auto *attribute_raw = record.m_fields.at(index).data();
+    auto attribute_raw = record.m_fields.at(index);
     cast_and_execute(
         type.type, string_to_compare, attribute_raw,
         [&cmp](auto compare_value, auto record_value) {

@@ -76,22 +76,28 @@ public:
   auto load(const std::string &table_name,
             const std::vector<std::string> &selected_attributes)
       -> QueryResponse;
+
   auto load(const std::string &table_name,
             const std::vector<std::string> &selected_attributes,
             const std::function<bool(Record)> &expr) -> QueryResponse {
 
+    spdlog::info("Getting load response");
     auto load_response = load(table_name, selected_attributes);
+    spdlog::info("got load response");
 
-    std::vector<Record> response;
-
-    for (const auto &rec : load_response.records) {
-      if (expr(rec)) {
-        response.push_back(rec);
-      }
-    }
+    // Iterate load_response.records in reverse
+    // If !expr(record): erase from load_response.records
+    spdlog::info("Filtering records");
+    load_response.records.erase(
+        std::remove_if(load_response.records.begin(),
+                       load_response.records.end(),
+                       [&expr](const Record &obj) { return !expr(obj); }),
+        load_response.records.end());
+    spdlog::info("Filtered records");
 
     return m_tables_raw.at(table_name)
-        .filter(response, selected_attributes, load_response.query_times);
+        .filter(load_response.records, selected_attributes,
+                load_response.query_times);
   }
 
   /// @brief Add a new value to a table.

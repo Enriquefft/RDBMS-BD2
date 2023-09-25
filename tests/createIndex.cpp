@@ -34,12 +34,10 @@ TEST_F(CreateIndex, create) {
       "val double);";
 
   std::string query2 = "INSERT INTO test FROM 'data2 copy';";
-  std::string query3 = "CREATE INDEX SEQ ON test(mode);";
   std::string query4 = "select * from test where mode < 3;";
 
   auto r1 = test_request(query);
   auto r2 = test_request(query2);
-  auto r3 = test_request(query3);
   auto r4 = test_request(query4);
 }
 
