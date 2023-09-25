@@ -31,6 +31,11 @@ HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
   }
 }
 
+HeapFile::HeapFile(const std::filesystem::path &table_path)
+    : m_table_name(table_path.filename()), m_table_path(table_path) {
+  read_metadata();
+}
+
 HeapFile::TableMetadata::TableMetadata(
     std::vector<std::string> _attribute_names,
     std::vector<Type> _attribute_types, std::string _primary_key)
