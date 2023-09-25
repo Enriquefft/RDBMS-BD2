@@ -64,18 +64,20 @@ auto HeapFile::load() -> std::vector<Record> {
 }
 
 auto HeapFile::add(const Record &record) -> pos_type {
+
   m_file_stream.open(m_table_path + DATA_FILE,
-                     std::ios::binary | std::ios::out);
+                     std::ios::binary | std::ios::out | std::ios::app);
   auto initial_pos = next_pos();
-  m_file_stream.seekp(initial_pos, std::ios::beg);
+
+  spdlog::info("Adding record at {}", static_cast<std::streamoff>(initial_pos));
+
   record.write(m_file_stream, m_metadata.attribute_types);
-  auto response = m_file_stream.tellp();
   m_file_stream.close();
 
   m_metadata.record_count++;
   write_metadata();
 
-  return response;
+  return initial_pos;
 }
 
 auto HeapFile::bulk_insert(const std::vector<Record> &records)
@@ -110,10 +112,11 @@ auto HeapFile::bulk_insert(const std::vector<Record> &records)
 auto HeapFile::next_pos() const -> pos_type {
 
   std::ifstream stream(m_table_path + DATA_FILE,
-                       std::ios::binary | std::ios::in);
+                       std::ios::binary | std::ios::ate);
 
-  stream.seekg(0, std::ios::end);
-  return static_cast<pos_type>(stream.tellg());
+  auto pos = static_cast<pos_type>(stream.tellg());
+  spdlog::info("Next pos: {}", static_cast<std::streamoff>(pos));
+  return pos;
 }
 
 auto HeapFile::read(const pos_type &pos) -> Record {
@@ -207,7 +210,6 @@ void HeapFile::write_metadata() {
     spdlog::error("Could not write metadata of table {}", m_table_name);
   }
   spdlog::info("Metadata of table {} written\n", m_table_name);
-  spdlog::info(to_string());
   metadata.close();
 }
 

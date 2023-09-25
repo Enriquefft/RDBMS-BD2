@@ -246,14 +246,15 @@ auto DBEngine::add(const std::string &table_name,
 
   Record rec(value);
 
-  bool inserted = false;
+  auto &table = m_tables_raw.at(table_name);
 
-  auto [type, key] = m_tables_raw.at(table_name).get_key(rec);
+  auto [type, key] = table.get_key(rec);
 
-  auto inserted_pos = m_tables_raw.at(table_name).next_pos();
+  auto inserted_pos = table.next_pos();
 
   response_time time;
 
+  bool pk_inserted = false;
   for (auto &idx : m_sequential_indexes) {
     if (idx.first.table == table_name && idx.first.attribute_name == key.name) {
 
@@ -261,17 +262,17 @@ auto DBEngine::add(const std::string &table_name,
 
       key_cast_and_execute(
           type.type, key.value,
-          [&idx, &inserted_pos, &inserted, &time](auto key_val) {
+          [&idx, &inserted_pos, &pk_inserted, &time](auto key_val) {
             spdlog::info("adding to sequential: {} {}", key_val,
                          static_cast<std::streamoff>(inserted_pos));
             auto add_response = idx.second.add(key_val, inserted_pos);
-            inserted = add_response.first;
+            pk_inserted = add_response.first;
             time = add_response.second;
           });
     }
   }
 
-  if (!inserted) {
+  if (!pk_inserted) {
     spdlog::info("Record with key {} already exists", key.name);
     throw std::runtime_error("Record already exists");
   }
@@ -281,7 +282,7 @@ auto DBEngine::add(const std::string &table_name,
 
   // Insert into indexes
 
-  return inserted;
+  return pk_inserted;
 }
 
 auto DBEngine::remove(const std::string &table_name, const Attribute &key)

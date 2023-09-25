@@ -42,6 +42,16 @@ TEST_F(ElRealTest, insertSingle) {
   auto response = test_request(query);
   EXPECT_EQ(response.code, 200);
 }
+TEST_F(ElRealTest, insertMore) {
+  auto query1 =
+      "INSERT INTO " + TEST_TABLE + " Values (3.5, 10, 'qwerty', 'true');";
+  auto query2 =
+      "INSERT INTO " + TEST_TABLE + " Values (3.5, 9, 'qwerty', 'true');";
+  auto response1 = test_request(query1);
+  auto response2 = test_request(query2);
+  EXPECT_EQ(response1.code, 200);
+  EXPECT_EQ(response2.code, 200);
+}
 
 TEST_F(ElRealTest, selectAll) {
   auto query = "SELECT * FROM " + TEST_TABLE + ";";
