@@ -279,12 +279,44 @@ auto DBEngine::add(const std::string &table_name,
   // Insert whole record
   m_tables_raw.at(table_name).add(rec);
 
-  throw std::runtime_error("simple add on other indexes not implemented");
-  // Insert into indexes
-  // for (auto & idx : m_sequential_indexes){
-  //
-  // }
+  const auto &types = m_tables_raw.at(table_name).get_types();
+  const auto &attribute_names =
+      m_tables_raw.at(table_name).get_attribute_names();
 
+  // Insert into all the other available indexes
+  for (ulong curr_field = 0; const auto &field_str_value : rec.m_fields) {
+
+    auto attribute_name = attribute_names.at(curr_field);
+    auto attribute_type = types.at(curr_field).type;
+
+    if (attribute_type != Type::INT && attribute_type != Type::FLOAT) {
+      curr_field++;
+      continue;
+    }
+
+    key_cast_and_execute(
+        attribute_type,
+        [&table_name, &attribute_name, this, &key,
+         &inserted_pos](ValidIndexType auto casted_field) {
+          using field_type = decltype(casted_field);
+
+          if (m_sequential_indexes.contains({table_name, attribute_name}) &&
+              attribute_name != key.name) {
+            m_sequential_indexes.at({table_name, attribute_name})
+                .add<field_type>(casted_field, inserted_pos);
+          }
+          if (m_avl_indexes.contains({table_name, attribute_name})) {
+            m_avl_indexes.at({table_name, attribute_name})
+                .add<field_type>(casted_field, inserted_pos);
+          }
+          if (m_isam_indexes.contains({table_name, attribute_name})) {
+            m_isam_indexes.at({table_name, attribute_name})
+                .add<field_type>(casted_field, inserted_pos);
+          }
+        },
+        field_str_value);
+    curr_field++;
+  }
   return pk_inserted;
 }
 
@@ -741,15 +773,6 @@ auto DBEngine::csv_insert(const std::string &table_name,
                 pk_values.push_back(i);
                 break;
               }
-
-                // case Type::VARCHAR: {
-                //   std::pair<std::string, std::streampos> i =
-                //       std::make_pair(key_value, pos_getter());
-                //
-                //   pk_values.push_back(i);
-                //
-                //   break;
-                // }
               }
 
               if (curr_field > pk_init_size) {
@@ -963,7 +986,17 @@ void DBEngine::clean_table(const std::string &table_name) {
 }
 
 void DBEngine::drop_table(const std::string &table_name) {
+
+  spdlog::warn("Droping table: {}", table_name);
+
+  // Remove heap file
   std::filesystem::remove_all(TABLES_PATH + table_name);
+
+  // Remove asociated indexes
+  std::filesystem::remove_all(INDEX_PATH "Sequential/" + table_name);
+  std::filesystem::remove_all(INDEX_PATH "AVL/" + table_name);
+  std::filesystem::remove_all(INDEX_PATH "ISAM/" + table_name);
+
   m_tables_raw.erase(table_name);
 
   for (auto &idx : m_avl_indexes) {

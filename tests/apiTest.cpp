@@ -20,6 +20,21 @@ TEST_F(ApiTests, Status200) {
   app.handle(req, res);
   EXPECT_EQ(res.code, 200);
 }
+TEST_F(ApiTests, dropTable) {
+  crow::request req;
+  crow::response res;
+
+  req.url = "/query";
+  req.method = crow::HTTPMethod::POST;
+  req.body = R"({"query": "DROP TABLE t_name;"})";
+
+  app.handle(req, res);
+  EXPECT_EQ(res.code, 200);
+}
+
+TEST_F(ApiTests, tableDropped) {
+  EXPECT_FALSE(app.get_engine().is_table("t_name"));
+}
 
 TEST_F(ApiTests, Status400) {
   crow::request req;

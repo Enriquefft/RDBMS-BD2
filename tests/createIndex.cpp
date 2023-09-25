@@ -5,7 +5,7 @@
 #include "Api/Api.hpp"
 #include "DBEngine.hpp"
 
-constexpr bool REMOVE_AFTER_TEST = false;
+constexpr bool REMOVE_AFTER_TEST = true;
 
 class CreateIndex : public ::testing::Test {
 protected:

@@ -30,7 +30,7 @@ HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
   open_or_create(m_table_path + DATA_FILE);
 
   if (!read_metadata()) {
-    update_first_deleted(DEFAULT_DELETED);
+    write_metadata();
   }
 }
 
@@ -54,7 +54,6 @@ auto HeapFile::load()
   m_file_stream.open(m_table_path + DATA_FILE, std::ios::binary | std::ios::in);
 
   if (std::filesystem::exists(m_table_path + DATA_FILE)) {
-    spdlog::info("File {} exists", m_table_path + DATA_FILE);
   }
 
   if (!m_file_stream) {
@@ -128,7 +127,6 @@ auto HeapFile::next_pos() const -> pos_type {
                        std::ios::binary | std::ios::ate);
 
   auto pos = static_cast<pos_type>(stream.tellg());
-  spdlog::info("Next pos: {}", static_cast<std::streamoff>(pos));
   return pos;
 }
 
@@ -195,7 +193,6 @@ auto HeapFile::remove(const pos_type &pos) -> std::pair<bool, time_t> {
 
 void HeapFile::update_first_deleted(pos_type pos) {
   m_metadata.first_deleted = pos;
-
   write_metadata();
 }
 
@@ -253,17 +250,17 @@ void HeapFile::write_metadata() {
                       sizeof(m_metadata))) {
     spdlog::error("Could not write metadata of table {}", m_table_name);
   }
-  spdlog::info("Metadata of table {} written\n", m_table_name);
+  spdlog::info("Metadata of table {} updated\n", m_table_name);
   metadata.close();
 }
 
 auto HeapFile::TableMetadata::get_attribute_idx(
     const std::string &attribute_name) const -> uint8_t {
 
-  auto counter = 0;
+  uint8_t counter = 0;
   for (const auto &attribute : attribute_names) {
     if (attribute == attribute_name) {
-      return static_cast<uint8_t>(counter);
+      return counter;
     }
     counter++;
   }
@@ -325,8 +322,6 @@ auto HeapFile::get_key(const Record &record) const
   auto key_idx = m_metadata.get_attribute_idx(m_metadata.primary_key);
   auto key_type = m_metadata.attribute_types.at(key_idx);
 
-  spdlog::info("ke_str: {}", record.m_fields.at(key_idx));
-
   Attribute key_attribute = {m_metadata.attribute_names.at(key_idx),
                              record.m_fields.at(key_idx)};
 
@@ -348,8 +343,6 @@ auto HeapFile::get_attribute_names() const -> std::vector<std::string> {
 }
 auto HeapFile::read_metadata() -> bool {
 
-  spdlog::info("Reading metadata from table {}", m_table_name);
-
   open_or_create(m_table_path + METADATA_FILE);
 
   std::ifstream file(
@@ -361,8 +354,8 @@ auto HeapFile::read_metadata() -> bool {
   std::streamsize size = file.tellg();
 
   if (size != sizeof(TableMetadata)) {
-    spdlog::error("Metadata file {} is corrupted or empty",
-                  m_table_path + METADATA_FILE);
+    spdlog::warn("Metadata file {} is corrupted or empty",
+                 m_table_path + METADATA_FILE);
     file.close();
     return false;
   }

@@ -67,8 +67,8 @@ private:
     std::vector<std::string> attribute_names;
     std::vector<Type> attribute_types;
     std::string primary_key;
-    pos_type first_deleted{};
-    uint64_t record_count{};
+    pos_type first_deleted = -1;
+    uint64_t record_count = 0;
 
     TableMetadata(std::vector<std::string> _attribute_names,
                   std::vector<Type> _attribute_types, std::string _primary_key);

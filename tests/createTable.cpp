@@ -25,7 +25,7 @@ protected:
     req.url = "/query";
     req.method = crow::HTTPMethod::POST;
   }
-  void TearDown() override { DBEngine::clean_table(TEST_TABLE); }
+  void TearDown() override { engine.drop_table(TEST_TABLE); }
 };
 
 TEST_F(CreateTableTest, BasicCreate) {
@@ -42,7 +42,7 @@ TEST_F(CreateTableTest, BasicCreate) {
 TEST_F(CreateTableTest, PkCreate) {
 
   const std::string QUERY =
-      std::format("CREATE TABLE {}(id char(30) primary key);", TEST_TABLE);
+      std::format("CREATE TABLE {}(id int primary key);", TEST_TABLE);
 
   auto response = test_request(QUERY);
   EXPECT_TRUE(engine.is_table(TEST_TABLE));
