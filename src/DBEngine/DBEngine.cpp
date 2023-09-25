@@ -385,7 +385,7 @@ void DBEngine::create_index(const std::string &table_name,
             spdlog::warn("Index already exists");
             throw std::invalid_argument("Index already exists");
           }
-          SequentialIndex<att_type> idx(table_name, column_name, false);
+          ISAM<att_type> idx(table_name, column_name, false);
           m_isam_indexes.emplace(Index(table_name, column_name), idx);
           m_isam_indexes.at({table_name, column_name})
               .bulk_insert<att_type>(key_values);
@@ -455,11 +455,13 @@ struct IndexInsert {
 };
 
 template <ValidType T>
-static void handle_option(const INDEX_OPTION &option,
-                          const IndexInsert &inserted_keys,
-                          const std::vector<bool> &pk_insertion,
-                          std::optional<AvlIndexContainer> avl, auto sequential,
-                          auto isam, const auto &get_pos) {
+static void handle_option(
+    const INDEX_OPTION &option, const IndexInsert &inserted_keys,
+    const std::vector<bool> &pk_insertion,
+    std::optional<std::reference_wrapper<AvlIndexContainer>> avl,
+    std::optional<std::reference_wrapper<SequentialIndexContainer>> sequential,
+    std::optional<std::reference_wrapper<IsamIndexContainer>> isam,
+    const auto &get_pos) {
 
   spdlog::info("Inserting into {}", static_cast<uint8_t>(option));
   spdlog::info("values");
@@ -483,19 +485,19 @@ static void handle_option(const INDEX_OPTION &option,
   if (options.test(0)) {
     spdlog::info("Found avl");
     std::jthread avl_insert([&avl, &inserted_indexes]() {
-      avl.value().template bulk_insert<T>(inserted_indexes);
+      avl.value().get().template bulk_insert<T>(inserted_indexes);
     });
   }
   if (options.test(1)) {
     spdlog::info("Found isam");
     std::jthread isam_insert([&isam, &inserted_indexes]() {
-      isam.value().template bulk_insert<T>(inserted_indexes);
+      isam.value().get().template bulk_insert<T>(inserted_indexes);
     });
   }
   if (options.test(2)) {
     spdlog::info("Found seq");
     std::jthread sequential_insert([&sequential, &inserted_indexes]() {
-      sequential.value().bulk_insert(inserted_indexes);
+      sequential.value().get().bulk_insert(inserted_indexes);
     });
   }
 }
@@ -569,7 +571,7 @@ void insert_field(const auto &field, const ulong &curr_field,
 
 template <typename T>
 auto get_idx(std::string table_name, std::string attribute_name, T idx_map)
-    -> std::optional<typename T::mapped_type> {
+    -> std::optional<std::reference_wrapper<typename T::mapped_type>> {
   if (idx_map.contains({table_name, attribute_name})) {
     return idx_map.at({table_name, attribute_name});
   }
