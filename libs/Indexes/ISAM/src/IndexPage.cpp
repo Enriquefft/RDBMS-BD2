@@ -67,8 +67,10 @@ template <typename KeyType> void IndexPage<KeyType>::read(std::fstream &file) {
 
 template <typename KeyType> POS_TYPE IndexPage<KeyType>::size_of() {
   int64_t capacity = this->getCapacity();
-  return static_cast<POS_TYPE>(sizeof(KeyType) * static_cast<unsigned long>(capacity) + sizeof(POS_TYPE) * (static_cast<unsigned long>(
-          capacity + 1)) + sizeof(bool));
+  return static_cast<POS_TYPE>(
+      sizeof(KeyType) * static_cast<unsigned long>(capacity) +
+      sizeof(POS_TYPE) * (static_cast<unsigned long>(capacity + 1)) +
+      sizeof(bool));
 }
 
 template <typename KeyType> KeyType *IndexPage<KeyType>::getKeys() const {
@@ -83,14 +85,13 @@ template <typename KeyType> bool IndexPage<KeyType>::getIsLeaf() const {
   return isLeaf;
 }
 
-template<typename KeyType>
+template <typename KeyType>
 POS_TYPE IndexPage<KeyType>::getChild(POS_TYPE pos) {
-    return children[pos];
+  return children[pos];
 }
 
-template<typename KeyType>
-KeyType IndexPage<KeyType>::getkey(POS_TYPE pos) {
-    return keys[pos];
+template <typename KeyType> KeyType IndexPage<KeyType>::getkey(POS_TYPE pos) {
+  return keys[pos];
 }
 
 /*
@@ -108,9 +109,9 @@ KeyType IndexPage<KeyType>::getkey(POS_TYPE pos) {
  */
 
 template <typename KeyType> POS_TYPE IndexPage<KeyType>::getCapacity() const {
-//  auto a = std::floor((buffer::get_buffer_size() - sizeof(POS_TYPE) -
-//                       2 * sizeof(KeyType *) - sizeof(bool)) /
-//                      (sizeof(KeyType) + sizeof(POS_TYPE)));
+  //  auto a = std::floor((buffer::get_buffer_size() - sizeof(POS_TYPE) -
+  //                       2 * sizeof(KeyType *) - sizeof(bool)) /
+  //                      (sizeof(KeyType) + sizeof(POS_TYPE)));
   return POS_TYPE(2);
 }
 
@@ -119,3 +120,4 @@ template <typename KeyType> IndexPage<KeyType>::~IndexPage() {
   delete[] children;
 }
 template class IndexPage<int>;
+template class IndexPage<float>;

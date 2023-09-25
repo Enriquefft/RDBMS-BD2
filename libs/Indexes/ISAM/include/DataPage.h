@@ -14,58 +14,53 @@
 
 using POS_TYPE = std::streampos;
 
-template<typename KeyType>
-class DataPage {
+template <typename KeyType> class DataPage {
 private:
-    std::vector<ISAMRecord<KeyType>> records;
-    POS_TYPE next;
-    POS_TYPE count;
+  std::vector<ISAMRecord<KeyType>> records;
+  POS_TYPE next;
+  POS_TYPE count;
 
 public:
-    DataPage();
+  DataPage();
 
-    KeyType getKey(POS_TYPE pos) const {
-        return records[pos].key;
-    }
+  KeyType getKey(POS_TYPE pos) const { return records[pos].key; }
 
-    bool isFull() const;
+  bool isFull() const;
 
-    POS_TYPE getCount() const;
+  POS_TYPE getCount() const;
 
-    std::vector<ISAMRecord<KeyType>> getRecords() const;
+  std::vector<ISAMRecord<KeyType>> getRecords() const;
 
-    void setRecord(ISAMRecord<KeyType>, int64_t pos);
+  void setRecord(ISAMRecord<KeyType>, int64_t pos);
 
-    ISAMRecord<KeyType> &getRecord(int64_t pos);
+  ISAMRecord<KeyType> &getRecord(int64_t pos);
 
-    POS_TYPE getNext() const;
+  POS_TYPE getNext() const;
 
-    void setNext(POS_TYPE next);
+  void setNext(POS_TYPE next);
 
-    static POS_TYPE getCapacity();
+  static POS_TYPE getCapacity();
 
-    POS_TYPE write(std::fstream &file);
+  POS_TYPE write(std::fstream &file);
 
-    void read(std::fstream &file);
+  void read(std::fstream &file);
 
-    static int64_t size_of();
+  static int64_t size_of();
 
-    void remove(int64_t i);
+  void remove(int64_t i);
 
-    ISAMRecord<KeyType> last();
+  ISAMRecord<KeyType> last();
 
-    void clearRecord(POS_TYPE pos);
+  void clearRecord(POS_TYPE pos);
 
-    void insertRecord(ISAMRecord<KeyType> record);
+  void insertRecord(ISAMRecord<KeyType> record);
 
-    bool isEmpty();
+  bool isEmpty();
 
-    ~DataPage();
+  ~DataPage();
 };
 
-
-
-extern template
-class DataPage<int>;
+extern template class DataPage<int>;
+extern template class DataPage<float>;
 
 #endif // INDEXED_SEQUENTIAL_ACCESS_METHOD_DATAPAGE_H

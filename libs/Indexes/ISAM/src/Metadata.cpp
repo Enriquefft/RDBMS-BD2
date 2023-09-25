@@ -59,7 +59,8 @@ POS_TYPE Metadata<KeyType>::getIndexPageCapacity() const {
   return index_page_capacity;
 }
 
-template <typename KeyType> POS_TYPE Metadata<KeyType>::getDataPageCapacity() const {
+template <typename KeyType>
+POS_TYPE Metadata<KeyType>::getDataPageCapacity() const {
   return data_page_capacity;
 }
 
@@ -68,3 +69,4 @@ POS_TYPE Metadata<KeyType>::getRootPosition() const {
   return root_position;
 }
 template class Metadata<int>;
+template class Metadata<float>;

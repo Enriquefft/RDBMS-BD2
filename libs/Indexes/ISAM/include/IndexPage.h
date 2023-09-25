@@ -46,6 +46,6 @@ public:
 };
 
 extern template class IndexPage<int>;
+extern template class IndexPage<float>;
 
 #endif // INDEXED_SEQUENTIAL_ACCESS_METHOD_INDEXPAGE_H
-

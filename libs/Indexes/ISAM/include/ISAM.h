@@ -26,7 +26,7 @@ constexpr int64_t ISAM_LEVELS = 3;
  *
  */
 
-template <typename KeyType> class ISAM : public Index::Index<KeyType> {
+template <typename KeyType> class ISAM {
 private:
   mutable Metadata<KeyType> metadata;
   mutable POS_TYPE root; // Root of the ISAM
@@ -39,15 +39,15 @@ private:
   mutable std::fstream dt_file;  // Data page file
   mutable std::fstream dup_file; // Data page file
 
-  //    std::string directory = "./DB_FILES/Indexes";
-  //    std::string attribute_name;
-  //    std::string table_name;
-  //    std::string index_name;
-  //    std::string dup_filename =
-  //        "duplicate_isam_data_file.dat";
-  //    bool PK;
+  std::string directory = "./DB_FILES/Indexes";
+  std::string attribute_name;
+  std::string table_name;
+  std::string index_name;
+  std::string duplicatesFilename = "duplicate_isam_data_file.dat";
+  bool PK;
+
 public:
-  virtual ~ISAM() = default;
+  ISAM() = default;
   using MIN_BULK_INSERT_SIZE = std::integral_constant<size_t, 81>;
 
   ISAM(std::string _table_name, std::string _attribute_name, bool _pK = false);
@@ -72,16 +72,15 @@ public:
 
   POS_TYPE max_records() const { return MIN_BULK_INSERT_SIZE::value; }
 
-  Index::Response search(Data<KeyType> key) const override;
+  Index::Response search(Data<KeyType> key) const;
 
   Index::Response __add(ISAMRecord<KeyType> record) const;
 
-  Index::Response remove(Data<KeyType> key) const override;
+  Index::Response remove(Data<KeyType> key) const;
 
-  Index::Response range_search(Data<KeyType> beg,
-                               Data<KeyType> end) const override;
+  Index::Response range_search(Data<KeyType> beg, Data<KeyType> end) const;
 
-  Index::Response add(Data<KeyType> key, POS_TYPE raw_pos) const override {
+  Index::Response add(Data<KeyType> key, POS_TYPE raw_pos) const {
     return __add(ISAMRecord<KeyType>{key, raw_pos});
   }
 
@@ -89,8 +88,8 @@ public:
 
   void build(std::vector<ISAMRecord<KeyType>> &data) const;
 
-  std::pair<Index::Response, std::vector<bool>> bulk_insert(
-      const std::vector<std::pair<KeyType, POS_TYPE>> &data) const override {
+  std::pair<Index::Response, std::vector<bool>>
+  bulk_insert(const std::vector<std::pair<KeyType, POS_TYPE>> &data) const {
     Index::Response response;
     response.startTimer();
     std::vector<ISAMRecord<KeyType>> other;
@@ -98,7 +97,7 @@ public:
       other.push_back(ISAMRecord<KeyType>{pair.first, pair.second});
     build(other);
     response.stopTimer();
-    response.records.push_back(1);
+    response.records.emplace_back(1);
 
     return std::make_pair(response, std::vector{true});
   }
@@ -134,5 +133,6 @@ private:
 };
 
 extern template class ISAM<int>;
+extern template class ISAM<float>;
 
 #endif // INDEXED_SEQUENTIAL_ACCESS_METHOD_ISAM_H

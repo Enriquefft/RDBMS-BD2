@@ -20,9 +20,9 @@ constexpr std::string_view METADATA_FILENAME = "ISAM.metadata";
  */
 template <typename KeyType> class Metadata {
 private:
-    POS_TYPE index_page_capacity;
-    POS_TYPE data_page_capacity;
-    POS_TYPE root_position;
+  POS_TYPE index_page_capacity;
+  POS_TYPE data_page_capacity;
+  POS_TYPE root_position;
 
 public:
   Metadata();
@@ -33,9 +33,9 @@ public:
 
   void setRootPosition(POS_TYPE rootPosition);
 
-    POS_TYPE getIndexPageCapacity() const;
+  POS_TYPE getIndexPageCapacity() const;
 
-    POS_TYPE getDataPageCapacity() const;
+  POS_TYPE getDataPageCapacity() const;
 
   POS_TYPE getRootPosition() const;
 
@@ -45,5 +45,6 @@ private:
   void read();
 };
 extern template class Metadata<int>;
+extern template class Metadata<float>;
 
 #endif // INDEXED_SEQUENTIAL_ACCESS_METHOD_METADATA_H

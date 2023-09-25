@@ -633,3 +633,4 @@ template <typename KeyType> std::string ISAM<KeyType>::get_table_name() const {
 // }
 
 template class ISAM<int>;
+template class ISAM<float>;

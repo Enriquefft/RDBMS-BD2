@@ -3,15 +3,13 @@ project(Indexed_Sequential_Access_Method)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS on)
 
-#if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
-#  add_executable(Indexed_Sequential_Access_Method main.cpp)
-#else()
+# if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+# add_executable(Indexed_Sequential_Access_Method main.cpp src/ISAM.cpp) else()
 add_library(Indexed_Sequential_Access_Method src/ISAM.cpp)
-#endif()
+# endif()
 
-target_sources(
-  Indexed_Sequential_Access_Method
-  PRIVATE src/DataPage.cpp src/IndexPage.cpp src/Metadata.cpp)
+target_sources(Indexed_Sequential_Access_Method
+               PRIVATE src/DataPage.cpp src/IndexPage.cpp src/Metadata.cpp)
 
 target_link_directories(Indexed_Sequential_Access_Method PRIVATE
                         ${CMAKE_SOURCE_DIR}/include/)
@@ -23,7 +21,7 @@ target_compile_options(
           $<$<CXX_COMPILER_ID:MSVC>:/W4
           /WX>
           $<$<CXX_COMPILER_ID:Clang>:-Weverything>
-#          $<$<AND:$<CONFIG:DEBUG>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-Werror>
+          # $<$<AND:$<CONFIG:DEBUG>,$<NOT:$<CXX_COMPILER_ID:MSVC>>>:-Werror>
           $<$<CXX_COMPILER_ID:GCC>:-fconcepts-diagnostics-depth=3>
           $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:
           -g
