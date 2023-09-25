@@ -177,15 +177,14 @@ auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
     }
   }
 
-  if (begin_key == KEY_LIMITS::MAX) {
-    begin_key.value = std::to_string(std::numeric_limits<int>::max());
-    begin_key.name = end_key.name;
-  }
   if (begin_key == KEY_LIMITS::MIN) {
     begin_key.value = std::to_string(std::numeric_limits<int>::min());
     begin_key.name = end_key.name;
   }
-
+  if (end_key == KEY_LIMITS::MAX) {
+    end_key.value = std::to_string(std::numeric_limits<int>::max());
+    end_key.name = begin_key.name;
+  }
   spdlog::info("Range search names: {}, {}", begin_key.name, end_key.name);
   spdlog::info("Range search values: {}, {}", begin_key.value, end_key.value);
 
