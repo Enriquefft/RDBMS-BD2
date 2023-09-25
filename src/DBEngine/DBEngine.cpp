@@ -385,7 +385,7 @@ void DBEngine::create_index(const std::string &table_name,
             spdlog::warn("Index already exists");
             throw std::invalid_argument("Index already exists");
           }
-          ISAM<att_type> idx(table_name, column_name, false);
+          SequentialIndex<att_type> idx(table_name, column_name, false);
           m_isam_indexes.emplace(Index(table_name, column_name), idx);
           m_isam_indexes.at({table_name, column_name})
               .bulk_insert<att_type>(key_values);

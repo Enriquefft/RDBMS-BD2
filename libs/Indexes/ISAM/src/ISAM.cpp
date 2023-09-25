@@ -627,9 +627,9 @@ template <typename KeyType> std::string ISAM<KeyType>::get_table_name() const {
   return this->table_name;
 }
 
-template <typename KeyType> ISAM<KeyType>::~ISAM() {
-  std::cout << "Calling destructor" << std::endl;
-  close_files();
-}
+// template <typename KeyType> ISAM<KeyType>::~ISAM() {
+//   std::cout << "Calling destructor" << std::endl;
+//   close_files();
+// }
 
 template class ISAM<int>;

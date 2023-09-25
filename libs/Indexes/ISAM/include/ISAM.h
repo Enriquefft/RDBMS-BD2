@@ -47,11 +47,12 @@ private:
   //        "duplicate_isam_data_file.dat";
   //    bool PK;
 public:
+  virtual ~ISAM() = default;
   using MIN_BULK_INSERT_SIZE = std::integral_constant<size_t, 81>;
 
   ISAM(std::string _table_name, std::string _attribute_name, bool _pK = false);
-  ISAM(ISAM &&other) noexcept = default;
-  ISAM(const ISAM &other) = default;
+  // ISAM(ISAM &&other) noexcept = default;
+  // ISAM(const ISAM &other) = default;
 
   std::string get_attribute_name() const;
 
@@ -84,7 +85,7 @@ public:
     return __add(ISAMRecord<KeyType>{key, raw_pos});
   }
 
-  ~ISAM();
+  // ~ISAM();
 
   void build(std::vector<ISAMRecord<KeyType>> &data) const;
 
@@ -132,7 +133,6 @@ private:
   void merge(DataPage<KeyType> &page) const;
 };
 
-// extern template
-// class ISAM<int>;
+extern template class ISAM<int>;
 
 #endif // INDEXED_SEQUENTIAL_ACCESS_METHOD_ISAM_H

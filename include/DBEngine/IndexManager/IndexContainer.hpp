@@ -5,8 +5,8 @@
 #include <spdlog/spdlog.h>
 
 #include "AVL/avl_index.hpp"
+// #include "ISAM.h"
 #include "Sequential/sequential_index.hpp"
-#include "ISAM/include/ISAM.h"
 
 template <template <typename> class IndexType>
   requires ValidIndex<IndexType>
@@ -71,9 +71,10 @@ struct AvlIndexContainer : public IndexContainer<AVLIndex> {
   AvlIndexContainer(AVLIndex<T> &idx) : IndexContainer<AVLIndex>{idx} {}
 };
 
-struct IsamIndexContainer : public IndexContainer<ISAM> {
+struct IsamIndexContainer : public IndexContainer<SequentialIndex> {
   template <ValidIndexType T>
-  IsamIndexContainer(ISAM<T> &idx) : IndexContainer<ISAM>{idx} {}
+  IsamIndexContainer(SequentialIndex<T> &idx)
+      : IndexContainer<SequentialIndex>{idx} {}
 };
 
 #endif // !AVL_INDEX_CONTAINER_HPP
