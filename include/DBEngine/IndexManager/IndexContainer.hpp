@@ -6,7 +6,7 @@
 
 #include "AVL/avl_index.hpp"
 #include "Sequential/sequential_index.hpp"
-// #include "Isam/isam_index.hpp"
+#include "ISAM/include/ISAM.h"
 
 template <template <typename> class IndexType>
   requires ValidIndex<IndexType>
@@ -70,10 +70,10 @@ struct AvlIndexContainer : public IndexContainer<AVLIndex> {
   template <ValidIndexType T>
   AvlIndexContainer(AVLIndex<T> &idx) : IndexContainer<AVLIndex>{idx} {}
 };
-struct IsamIndexContainer : public IndexContainer<SequentialIndex> {
+
+struct IsamIndexContainer : public IndexContainer<ISAM> {
   template <ValidIndexType T>
-  IsamIndexContainer(SequentialIndex<T> &idx)
-      : IndexContainer<SequentialIndex>{idx} {}
+  IsamIndexContainer(ISAM<T> &idx) : IndexContainer<ISAM>{idx} {}
 };
 
 #endif // !AVL_INDEX_CONTAINER_HPP
