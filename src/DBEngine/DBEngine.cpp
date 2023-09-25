@@ -870,13 +870,14 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
   auto type = m_tables_raw.at(table_name).get_type(column_name);
   auto index = m_tables_raw.at(table_name).get_attribute_idx(column_name);
 
-  return [&type, &cmp, &string_to_compare, &index](const Record &record) {
+  return [type, cmp, string_to_compare, index](const Record &record) {
     auto attribute_raw = record.m_fields.at(index);
     cast_and_execute(
         type.type, string_to_compare, attribute_raw,
         [&cmp](auto compare_value, auto record_value) {
           switch (cmp) {
           case EQUAL:
+            spdlog::error("EQUAL COMP = {}", record_value);
             if constexpr (std::is_same_v<decltype(compare_value), float>) {
               return compare_value - record_value < FLOAT_EPSILON;
             } else {
