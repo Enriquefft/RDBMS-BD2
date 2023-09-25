@@ -76,6 +76,23 @@ public:
   auto load(const std::string &table_name,
             const std::vector<std::string> &selected_attributes)
       -> QueryResponse;
+  auto load(const std::string &table_name,
+            const std::vector<std::string> &selected_attributes,
+            const std::function<bool(Record)> &expr) -> QueryResponse {
+
+    auto load_response = load(table_name, selected_attributes);
+
+    std::vector<Record> response;
+
+    for (const auto &rec : load_response.records) {
+      if (expr(rec)) {
+        response.push_back(rec);
+      }
+    }
+
+    return m_tables_raw.at(table_name)
+        .filter(response, selected_attributes, load_response.query_times);
+  }
 
   /// @brief Add a new value to a table.
   /// @param table_name The name of the table to add the value to.

@@ -212,6 +212,11 @@ auto DBEngine::range_search(const std::string &table_name, Attribute begin_key,
         }
       });
 
+  spdlog::info("Positions:");
+  for (const auto &pos : positions) {
+    spdlog::info("{}", static_cast<std::streamoff>(pos));
+  }
+
   std::vector<Record> response;
 
   for (const auto &pos : positions) {
@@ -318,6 +323,22 @@ void DBEngine::create_index(const std::string &table_name,
                             const Index_t &index_type) {
 
   const auto TYPE = m_tables_raw.at(table_name).get_type(column_name);
+
+  // type
+  switch (index_type) {
+  case Index_t::AVL: {
+    spdlog::info("Creating avl index for {} {}", table_name, column_name);
+    break;
+  }
+  case Index_t::ISAM: {
+    spdlog::info("Creating isam index for {} {}", table_name, column_name);
+    break;
+  }
+  case Index_t::SEQUENTIAL: {
+    spdlog::info("Creating seq index for {} {}", table_name, column_name);
+    break;
+  }
+  }
 
   if (TYPE.type == Type::BOOL) {
     spdlog::error("Bool can't be indexed. at: create_index");
