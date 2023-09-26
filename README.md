@@ -53,6 +53,29 @@ Las estructuras de datos implementadas deben poder realizar las siguientes opera
 
 **Nota:** Por defecto, todas las operaciones sobre la tabla se ejecutan sobre el índice Sequential, que se crea automáticamente para todos los índices. Esto significa que las operaciones sobre la tabla utilizarán el índice Sequential a menos que se especifique lo contrario.
 
+### Indexed Sequential Access Method
+
+Los métodos de insert, remove y search del ISAM muestran a continuación: 
+
+#### Insert
+<div style="text-align:center"><img src="./imgs/isam_insert.png" /></div>
+
+#### Remove
+<div style="text-align:center"><img src="./imgs/isam_remove.png" /></div>
+
+#### Search
+<div style="text-align:center"><img src="./imgs/isam_search.png" /></div>
+
+### Ilustración general de la estructura del ISAM
+<div style="text-align:center"><img src="./imgs/Isam4.drawio.png" /></div>
+
+### Ilustración del *Split* en el *Insert*
+<div style="text-align:center"><img src="./imgs/InserISAM.drawio.png" /></div>
+
+### Ilustración del *Merge* en el *Remove*
+<div style="text-align:center"><img src="./imgs/deleteISAM.drawio.png" /></div>
+
+
 ## Dataset
 
 El conjunto de datos utilizado en este proyecto proviene de la plataforma Kaggle y consiste en pistas de Spotify que abarcan diferentes géneros musicales. Este dataset es una **buena** elección por las siguientes razónes:
@@ -106,10 +129,51 @@ CREATE TABLE test(id int primary key, col1 char(50), mode int, val double);
 
 ´´´
 
+### Bulk Insert
+
+|            | 1k      | 10k   | 100k   | 1M      |
+|------------|---------|-------|--------|---------|
+| ISAM       | 16000µs | 185ms | 1807ms | 25713ms |
+| AVL        |         |       |        |         |
+| Sequencial |         |       |        |         |
+
+### Insert
+
+|            | 1k   | 10k  | 100k | 1M   |
+|------------|------|------|------|------|
+| ISAM       | 34µs | 38µs | 47µs | 64µs |
+| AVL        |      |      |      |      |
+| Sequencial |      |      |      |      |
+
+### Search
+
+|            | 1k  | 10k  | 100k | 1M   |
+|------------|-----|------|------|------|
+| ISAM       | 8µs | 10µs | 15µs | 21µs |
+| AVL        |     |      |      |      |
+| Sequencial |     |      |      |      |
+
+### Range Search
+
+|            | 1k    | 10k    | 100k   | 1M      |
+|------------|-------|--------|--------|---------|
+| ISAM       | 228µs | 1203µs | 5402µs | 13213µs |
+| AVL        |       |        |        |         |
+| Sequencial |       |        |        |         |
+
+### Remove
+
+|            | 1k    | 10k  | 100k | 1M   |
+|------------|-------|------|------|------|
+| ISAM       | 43 µs | 48µs | 52µs | 74µs |
+| AVL        |       |      |      |      |
+| Sequencial |       |      |      |      |
+
+
 
 ## Conclusiones
 
-* Conclusión 1
+* El Indexed Secuential Access Method (ISAM) es una estructura muy eficiente para realizar búsquedas y búsquedas por rango. La principal desventaja es que al ser un índice estático, si tenemos muy pocos registros (<1k), estaríamos desperdiciando mucha memoria y si tenemos muchos registros (>10M), tiende a ser una búsqueda lineal.
 * Conclusión 2
 * Conclusión 3
 * Conclusión 4
@@ -119,8 +183,8 @@ CREATE TABLE test(id int primary key, col1 char(50), mode int, val double);
 
 | **Aaron Camacho** | **Nicolas Castañeda** | **Juaquín Remon** | **Enrique Flores** | **Renato Cernades** |
 |:------------:|:------------:|:------------:|:------------:|:------------:|
-| ![AaronCS25](https://avatars.githubusercontent.com/u/102536323?s=400&v=4) | ![nicolas-castaneda](https://avatars.githubusercontent.com/u/102196795?v=4) | ![jauquin456](https://avatars.githubusercontent.com/u/83974317?v=4) | ![Enriquefft](https://avatars.githubusercontent.com/u/60308719?v=4) | ![Avatar del Autor 5](URL_del_Avatar_Autor_5) |
-| [github.com/AaronCS25](https://github.com/AaronCS25) | [github.com/NickCQCCS](https://github.com/nicolas-castaneda) | [github.com/juaquin456](https://github.com/juaquin456) | [github.com/Enriquefft](https://github.com/Usuario_Autor_4) | [github.com/Usuario_Autor_5](https://github.com/Usuario_Autor_5) |
+| ![AaronCS25](https://avatars.githubusercontent.com/u/102536323?s=400&v=4) | ![nicolas-castaneda](https://avatars.githubusercontent.com/u/102196795?v=4) | ![jauquin456](https://avatars.githubusercontent.com/u/83974317?v=4) | ![Enriquefft](https://avatars.githubusercontent.com/u/60308719?v=4) | ![Avatar del Autor 5](https://avatars.githubusercontent.com/u/83974266?s=400&u=f9e6664839a841ae781d3932ca156316ab35ea03&v=4) |
+| [github.com/AaronCS25](https://github.com/AaronCS25) | [github.com/NickCQCCS](https://github.com/nicolas-castaneda) | [github.com/juaquin456](https://github.com/juaquin456) | [github.com/Enriquefft](https://github.com/Usuario_Autor_4) | [github.com/Usuario_Autor_5](https://github.com/RenatoCernades0107) |
 
 ## Bibliografía
 
