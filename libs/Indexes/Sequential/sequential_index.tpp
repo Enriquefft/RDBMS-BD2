@@ -930,6 +930,8 @@ template <typename KEY_TYPE>
 std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
     const std::vector<std::pair<Data<KEY_TYPE>, physical_pos>> &records) const {
 
+  std::vector<bool> inserted(records.size(), true);
+
   Response response;
   response.startTimer();
   try {
@@ -971,7 +973,11 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
           sir_prev = sir_cur;
         } else {
           if (sir_cur.data == sir_prev.data) {
-            this->insertDuplicate(indexFile, sir_prev, sir_cur);
+            if (!this->PK) {
+              this->insertDuplicate(indexFile, sir_prev, sir_cur);
+            } else {
+              inserted.at(i) = false;
+            }
           } else {
             sir_cur.setCurrent(sir_prev.current_pos +
                                    static_cast<std::streamoff>(
@@ -994,7 +1000,7 @@ std::pair<Response, std::vector<bool>> SequentialIndex<KEY_TYPE>::bulk_insert(
   }
 
   response.stopTimer();
-  return {response, std::vector<bool>(records.size())};
+  return {response, inserted};
 }
 
 template <typename KEY_TYPE>

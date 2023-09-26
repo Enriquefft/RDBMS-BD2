@@ -25,7 +25,8 @@ public:
 
   auto load() -> std::pair<std::vector<Record>, time_t>;
   auto add(const Record &record) -> pos_type;
-  auto bulk_insert(const std::vector<Record> &records) -> ::Index::Response;
+  auto bulk_insert(const std::vector<Record> &records,
+                   const std::vector<bool> &rec_to_insert) -> ::Index::Response;
   auto next_pos() const -> pos_type;
 
   auto read(const pos_type &pos) -> std::pair<Record, time_t>;

@@ -92,7 +92,8 @@ auto HeapFile::add(const Record &record) -> pos_type {
   return initial_pos;
 }
 
-auto HeapFile::bulk_insert(const std::vector<Record> &records)
+auto HeapFile::bulk_insert(const std::vector<Record> &records,
+                           const std::vector<bool> &rec_to_insert)
     -> ::Index::Response {
 
   m_file_stream.open(m_table_path + DATA_FILE,
@@ -100,15 +101,20 @@ auto HeapFile::bulk_insert(const std::vector<Record> &records)
   auto initial_pos = next_pos();
   m_file_stream.seekp(initial_pos, std::ios::beg);
 
-  std::vector<pos_type> positions(records.size());
+  std::vector<pos_type> positions;
+  positions.reserve(records.size());
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  for (ulong idx = 0; const auto &rec : records) {
-    rec.write(m_file_stream, m_metadata.attribute_types);
-    positions.at(idx) =
-        initial_pos + static_cast<std::streamoff>(idx) * get_record_size();
-    idx++;
+  for (ulong idx = 0, inserted_idx = 0; const auto &rec : records) {
+
+    if (rec_to_insert.at(inserted_idx)) {
+      rec.write(m_file_stream, m_metadata.attribute_types);
+      positions.emplace_back(initial_pos + static_cast<std::streamoff>(idx) *
+                                               get_record_size());
+      idx++;
+    }
+    inserted_idx++;
   }
   auto end_time = std::chrono::high_resolution_clock::now();
 

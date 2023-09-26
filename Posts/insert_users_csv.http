@@ -4,6 +4,6 @@ Content-Type: application/json
 {
     # "query": "CREATE TABLE music(num int primary key, tipo char(8), cantantes int, score double);"
     # "query": "INSERT INTO music from 'data2';"
-    "query": "SELECT * FROM music WHERE num > 329;"
+    "query": "SELECT * FROM music;"
 }
     # "query": "DROP TABLE music;"

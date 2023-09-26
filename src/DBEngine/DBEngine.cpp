@@ -657,7 +657,6 @@ void insert_field(const auto &field, const ulong &curr_field,
   }
   case DB_ENGINE::Type::VARCHAR:
   case DB_ENGINE::Type::BOOL:
-    spdlog::info("a value was not inserted(VCH or BOOL)");
     break;
   }
 }
@@ -720,6 +719,8 @@ auto DBEngine::csv_insert(const std::string &table_name,
 
   query_time_t times;
 
+  bool early_inserted = false;
+
   key_cast_and_execute(
       key_type.type,
       [&](ValidIndexType auto sample) {
@@ -779,18 +780,23 @@ auto DBEngine::csv_insert(const std::string &table_name,
               }
               }
 
-              if (curr_field > pk_init_size) {
-                pk_insertion =
-                    std::jthread([&inserted_indexes, &table_name, &key_name,
-                                  &pk_values, this, &times]() {
-                      spdlog::info("Bulk inserting pk - 1");
-                      auto bulk_insert_response =
-                          m_sequential_indexes.at({table_name, key_name})
-                              .bulk_insert<pk_type>(pk_values);
-                      inserted_indexes = bulk_insert_response.second;
-                      times["PK_BULK_INSERT"] =
-                          bulk_insert_response.first.query_time;
-                    });
+              // Early insertion
+              if (curr_field > pk_init_size && !early_inserted) {
+                early_inserted = true;
+                pk_insertion = std::jthread([&inserted_indexes, &table_name,
+                                             &key_name, &pk_values, this,
+                                             &times, &records, &table_heap]() {
+                  spdlog::info("Bulk inserting pk - 1");
+                  auto bulk_insert_response =
+                      m_sequential_indexes.at({table_name, key_name})
+                          .bulk_insert<pk_type>(pk_values);
+                  inserted_indexes = bulk_insert_response.second;
+                  times["PK_BULK_INSERT"] =
+                      bulk_insert_response.first.query_time;
+                  table_heap.bulk_insert(records, inserted_indexes);
+                  records.clear();
+                  inserted_indexes.clear();
+                });
               }
             }
 
@@ -798,7 +804,7 @@ auto DBEngine::csv_insert(const std::string &table_name,
           }
         }
 
-        table_heap.bulk_insert(records);
+        spdlog::info("Bulk inserting pk - 2");
 
         if (pk_insertion.joinable()) {
           pk_insertion.join();
@@ -807,13 +813,11 @@ auto DBEngine::csv_insert(const std::string &table_name,
         spdlog::info("Inserting into primary key index n° - rest {}",
                      pk_values.size());
 
-        for (const auto &elem : pk_values) {
-          std::cout << elem.first << ' ' << elem.second << '\n';
-        }
-
         auto rest_pk_insert = m_sequential_indexes.at({table_name, key_name})
                                   .bulk_insert<pk_type>(pk_values);
-        auto inserted_bools = rest_pk_insert.second;
+        inserted_indexes = rest_pk_insert.second;
+
+        table_heap.bulk_insert(records, inserted_indexes);
 
         if (!times.contains("PK_BULK_INSERT")) {
           times["PK_BULK_INSERT"] = decltype(times)::mapped_type{};
@@ -821,10 +825,7 @@ auto DBEngine::csv_insert(const std::string &table_name,
 
         times["PK_BULK_INSERT"] += rest_pk_insert.first.query_time;
 
-        spdlog::info("Recieved bool count: {}", inserted_bools.size());
-
-        inserted_indexes.insert(inserted_indexes.end(), inserted_bools.begin(),
-                                inserted_bools.end());
+        spdlog::info("Recieved bool count: {}", inserted_indexes.size());
       },
       key_value);
 
@@ -967,7 +968,6 @@ auto DBEngine::get_comparator(const std::string &table_name, Comp cmp,
           throw std::runtime_error("Not valid comparator");
         },
         string_to_compare, attribute_raw);
-    return cmp == EQUAL;
   };
 }
 
