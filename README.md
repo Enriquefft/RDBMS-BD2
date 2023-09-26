@@ -1,4 +1,4 @@
-# RDBMS-BD2
+![image](https://github.com/Enriquefft/RDBMS-BD2/assets/102196795/f11bc539-44c9-4b00-ac88-a21107417bf4)# RDBMS-BD2
 Relationadatabase managment system, made in c++ for Database 2
 
 ## Tabla de Contenidos
@@ -122,59 +122,54 @@ El conjunto de datos utilizado en este proyecto proviene de la plataforma Kaggle
 
 ## Experimentación
 
-Para probar el funcionamiento del proyecto se realizó las siguientes queries:
-
-´´´sql
-CREATE TABLE test(id int primary key, col1 char(50), mode int, val double);
-
-´´´
+Para probar el funcionamiento del proyecto se realizaron pruebas de inserciones de múltiples registros, inserciones de un registro, búsqueda, búsqueda por rango y eliminación sobre 1K, 10K, 100K y 1M de datos.
 
 ### Bulk Insert
 
 |            | 1k      | 10k   | 100k   | 1M      |
-|------------|---------|-------|--------|---------|
+|------------|---------|----inserc---|--------|---------|
 | ISAM       | 16000µs | 185ms | 1807ms | 25713ms |
-| AVL        |         |       |        |         |
-| Sequencial |         |       |        |         |
+| AVL        | 351774µs| 4531ms| 53645ms| |
+| Sequencial | 10829µs |  94ms | 925ms  |  8968ms |
 
 ### Insert
 
 |            | 1k   | 10k  | 100k | 1M   |
 |------------|------|------|------|------|
 | ISAM       | 34µs | 38µs | 47µs | 64µs |
-| AVL        |      |      |      |      |
-| Sequencial |      |      |      |      |
+| AVL        | 436µs| 475µs| 687µs|      |
+| Sequencial | 140µs| 176µs| 186µs| 248µs|
 
 ### Search
 
 |            | 1k  | 10k  | 100k | 1M   |
 |------------|-----|------|------|------|
 | ISAM       | 8µs | 10µs | 15µs | 21µs |
-| AVL        |     |      |      |      |
-| Sequencial |     |      |      |      |
+| AVL        | 43µs| 49µs | 65µs |      |
+| Sequencial |131µs|156µs | 188µs| 223µs|
 
 ### Range Search
 
 |            | 1k    | 10k    | 100k   | 1M      |
 |------------|-------|--------|--------|---------|
 | ISAM       | 228µs | 1203µs | 5402µs | 13213µs |
-| AVL        |       |        |        |         |
-| Sequencial |       |        |        |         |
+| AVL        |16058µs|159193µs| 1721ms |         |
+| Sequencial |12152µs| 96530µs| 1118ms |  9550ms |
 
 ### Remove
 
 |            | 1k    | 10k  | 100k | 1M   |
 |------------|-------|------|------|------|
 | ISAM       | 43 µs | 48µs | 52µs | 74µs |
-| AVL        |       |      |      |      |
-| Sequencial |       |      |      |      |
+| AVL        | 608µs | 831µs| 989µs|      |
+| Sequencial | 161 µs| 255µs| 293µs| 357µs|
 
 
 
 ## Conclusiones
 
 * El Indexed Secuential Access Method (ISAM) es una estructura muy eficiente para realizar búsquedas y búsquedas por rango. La principal desventaja es que al ser un índice estático, si tenemos muy pocos registros (<1k), estaríamos desperdiciando mucha memoria y si tenemos muchos registros (>10M), tiende a ser una búsqueda lineal.
-* Conclusión 2
+* El Sequential Index es una estructura 
 * Conclusión 3
 * Conclusión 4
 * Conclusión 5
