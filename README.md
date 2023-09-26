@@ -114,11 +114,29 @@ El conjunto de datos utilizado en este proyecto proviene de la plataforma Kaggle
 
 ## SQLParser
 
-
+El parser fue construido usando las herramientas de GNU, bison y flex. Flex usando para scannear el input y tokenizarlo, por otro lado, se construyó el GIC en bison, este funciona como el parser. Con estas herramientas se logró desarrollar un lenguaje simplificado de SQL, a la vez haciendo posible su escalabilidad y manejo a futuro.
 
 ### Queries
 
-### Non terminals
+```CREATE TABLE {tablename} ({col1} {type} primary key, {col2} {type}, ...);```
+{type}: int | double | bool | char | char(n)
+
+```INSERT INTO {tablename} VALUES({value1}, {value2}, ...);```
+
+```INSERT INTO {tablename} FROM {namefile};```
+
+```SELECT { * | columnames } FROM tablename [WHERE {constraint1} (AND | OR) {constraint2} ... ];```
+{constraint} : {value1} [ = | < | > | <= | >= ] {value2}
+
+```CREATE INDEX [SEQ | AVL | ISAM] ON {tablename}({colname});```
+
+```DROP TABLE {tablename};```
+
+```DELETE FROM {tablename} WHERE {pk_col} = {value};```
+
+### SELECT
+
+El select acepta una lista de condiciones (ej. id = 4 AND col1 = 3 OR col2 = 'heider'). El parser separá en listas de listas estas condiciones, en donde el primer nivel de lista es por la separación de OR, y el segundo nivel de AND. Esto ayudara a la logica para realizar los search de mejor manera. Construira un lambda para cada lista más profunda, para cada atributo que no tiene un indice, caso contrario guardar ese condicional para realizar el search sobre ese, y al resultado se le aplicara el lambda. En este punto tendrá un resultado para cada lista inferior (AND), ahora, como lo hemos hecho, solo se concatenan los resultados para devolver el select.
 
 ## Experimentación
 
