@@ -25,6 +25,8 @@ Relational database managment system, made in c++ for Database 2
 ### Ubuntu
 
 * CMake (3.27)
+* YACC
+* Bison
 
 #### Instalar g++13
 
