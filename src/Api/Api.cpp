@@ -1,6 +1,7 @@
 #include "Api.hpp"
 #include "DBEngine.hpp"
 
+#include <SqlParser.hpp>
 #include <crow.h>
 #include <crow/common.h>
 #include <crow/json.h>
@@ -21,22 +22,37 @@ static auto vec_to_json(const std::vector<T> &vec) -> std::string {
 }
 
 struct ApiResponse {
-  std::string existingTables;
+  // crow::json::wvalue(crow::json::type::List)
+  wvalue::list tables;
+  wvalue::list columns;
+  wvalue::list rows;
+  wvalue::object times;
 
-  std::string queryData;
-  std::string executionTime;
+  ApiResponse(ParserResponse &&query_response) {
+    for (auto &table : query_response.table_names) {
+      tables.emplace_back(std::move(table));
+    }
 
-  ApiResponse(const auto &query_response, DB_ENGINE::DBEngine &engine)
-      : existingTables(vec_to_json(engine.get_table_names())),
-        queryData(query_response.records),
-        executionTime(query_response.query_times) {}
+    for (auto &column : query_response.column_names) {
+      columns.emplace_back(std::move(column));
+    }
 
-  [[nodiscard]] auto dump() const -> std::string {
+    for (auto &[key, value] : query_response.query_times) {
+      times[key] = value.count();
+    }
+
+    for (auto &record : query_response.records) {
+      rows.emplace_back(wvalue::list(record.begin(), record.end()));
+    }
+  }
+
+  [[nodiscard]] auto dump() -> std::string {
 
     wvalue response;
-    response["existingTables"] = existingTables;
-    response["queryData"] = queryData;
-    response["execution_time"] = executionTime;
+    response["tables"] = std::move(tables);
+    response["columns"] = std::move(columns);
+    response["rows"] = std::move(rows);
+    response["times"] = std::move(times);
     return response.dump();
   }
 };
@@ -58,23 +74,23 @@ auto Api::parse_query(const crow::request &req) -> crow::response {
 
   spdlog::info("Request questy: {}", query);
 
-  // try {
-  std::istringstream query_buffer(query);
+  try {
+    std::istringstream query_buffer(query);
 
-  // response_body = m_sql_parser.parse(query_buffer);
-  auto &engine = m_sql_parser.get_engine();
-  ApiResponse api_response(m_sql_parser.parse(query_buffer), engine);
+    // response_body = m_sql_parser.parse(query_buffer);
+    auto &engine = m_sql_parser.get_engine();
+    ApiResponse api_response(m_sql_parser.parse(query_buffer));
 
-  // Create the response
-  crow::response response = api_response.dump();
-  response.code = crow::status::OK;
-  response.set_header("Content-Type", "application/json");
+    // Create the response
+    crow::response response = api_response.dump();
+    response.code = crow::status::OK;
+    response.set_header("Content-Type", "application/json");
 
-  return response;
-  // } catch (std::exception &e) {
-  //   spdlog::error("Error parsing query: {}\n{}", query, e.what());
-  //   return {crow::status::BAD_REQUEST, e.what()};
-  // }
+    return response;
+  } catch (std::exception &e) {
+    spdlog::error("Error parsing query: {}\n{}", query, e.what());
+    return {crow::status::BAD_REQUEST, e.what()};
+  }
 }
 
 void Api::set_routes() {

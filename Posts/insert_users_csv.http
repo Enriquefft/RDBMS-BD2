@@ -1,6 +1,9 @@
 POST localhost:8080/query
-Content-Type: application/json
+ontent-Type: application/json
 
 {
-    "query": "INSERT INTO ersonas from 'tab_personas.csv';"
+    # "query": "CREATE TABLE music(num int primary key, tipo char(8), cantantes int, score double);"
+    # "query": "INSERT INTO music from 'data2';"
+    "query": "SELECT * FROM mus;"
 }
+    # "query": "DROP TABLE music;"

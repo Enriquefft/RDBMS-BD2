@@ -35,7 +35,8 @@ HeapFile::HeapFile(std::string table_name, std::vector<Type> types,
 }
 
 HeapFile::HeapFile(const std::filesystem::path &table_path)
-    : m_table_name(table_path.filename()), m_table_path(table_path) {
+    : m_table_name(table_path.filename()),
+      m_table_path(table_path.string() + "/") {
   read_metadata();
 }
 

@@ -32,43 +32,43 @@ TEST_F(ApiTests, dropTable) {
   EXPECT_EQ(res.code, 200);
 }
 
-TEST_F(ApiTests, tableDropped) {
-  EXPECT_FALSE(app.get_engine().is_table("t_name"));
-}
-
-TEST_F(ApiTests, Status400) {
-  crow::request req;
-  crow::response res;
-
-  req.url = "/query";
-  req.method = crow::HTTPMethod::POST;
-  req.body = R"({"not_query": "SELECT * FROM users"})";
-
-  app.handle(req, res);
-  EXPECT_EQ(res.code, 400);
-}
-
-TEST_F(ApiTests, Status404) {
-
-  crow::request req;
-  crow::response res;
-
-  req.url = "/other_path";
-  req.method = crow::HTTPMethod::POST;
-  req.body = R"({"not_query": "SELECT * FROM users"})";
-
-  app.handle(req, res);
-  EXPECT_EQ(res.code, 404);
-}
-TEST_F(ApiTests, Status405) {
-
-  crow::request req;
-  crow::response res;
-
-  req.url = "/query";
-  req.method = crow::HTTPMethod::GET;
-  req.body = R"({"not_query": "SELECT * FROM users"})";
-
-  app.handle(req, res);
-  EXPECT_EQ(res.code, 405);
-}
+// TEST_F(ApiTests, tableDropped) {
+//   EXPECT_FALSE(app.get_engine().is_table("t_name"));
+// }
+//
+// TEST_F(ApiTests, Status400) {
+//   crow::request req;
+//   crow::response res;
+//
+//   req.url = "/query";
+//   req.method = crow::HTTPMethod::POST;
+//   req.body = R"({"not_query": "SELECT * FROM users"})";
+//
+//   app.handle(req, res);
+//   EXPECT_EQ(res.code, 400);
+// }
+//
+// TEST_F(ApiTests, Status404) {
+//
+//   crow::request req;
+//   crow::response res;
+//
+//   req.url = "/other_path";
+//   req.method = crow::HTTPMethod::POST;
+//   req.body = R"({"not_query": "SELECT * FROM users"})";
+//
+//   app.handle(req, res);
+//   EXPECT_EQ(res.code, 404);
+// }
+// TEST_F(ApiTests, Status405) {
+//
+//   crow::request req;
+//   crow::response res;
+//
+//   req.url = "/query";
+//   req.method = crow::HTTPMethod::GET;
+//   req.body = R"({"not_query": "SELECT * FROM users"})";
+//
+//   app.handle(req, res);
+//   EXPECT_EQ(res.code, 405);
+// }

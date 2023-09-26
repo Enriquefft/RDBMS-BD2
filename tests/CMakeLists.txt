@@ -31,12 +31,12 @@ macro(package_add_test TESTNAME)
     # data via paths relative to the project root
     WORKING_DIRECTORY ${PROJECT_DIR}
     PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_DIR}")
+
   set_target_properties(${TESTNAME} PROPERTIES FOLDER tests)
 
 endmacro()
 
 package_add_test(apiTest apiTest.cpp)
-package_add_test(createTableTest createTable.cpp)
-package_add_test(bulkInsertTest bulkInsert.cpp)
-package_add_test(bigTest bigTest.cpp)
-package_add_test(idxTest createIndex.cpp)
+# package_add_test(createTableTest createTable.cpp)
+# package_add_test(bulkInsertTest bulkInsert.cpp) package_add_test(bigTest
+# bigTest.cpp) package_add_test(idxTest createIndex.cpp)

@@ -48,7 +48,11 @@ DB_ENGINE::DBEngine::DBEngine() {
   // Read tables raw data
   for (auto const &dir_entry :
        std::filesystem::directory_iterator{TABLES_PATH}) {
+    spdlog::info(dir_entry.path().string());
+    spdlog::info(dir_entry.path().filename().string());
     HeapFile heap_file(dir_entry.path());
+    m_tables_raw.insert(
+        {dir_entry.path().filename().string(), std::move(heap_file)});
   }
 
   // Load Indexes

@@ -31,9 +31,8 @@ protected:
 };
 
 TEST_F(NoIdxQuery, createTable) {
-  std::string query =
-      "CREATE TABLE test(id int primary key, col1 char(50), mode int, "
-      "val double);";
+  std::string query = "CREATE TABLE test(id int primary key, col1 char(50), "
+                      "mode int, val double);";
 
   std::string query2 = "INSERT INTO test FROM 'data2 copy';";
   std::string query4 = "select * from test where mode < 3;";
