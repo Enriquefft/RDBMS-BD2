@@ -20,6 +20,53 @@ Relational database managment system, made in c++ for Database 2
   - [Autores](#autores)
   - [Bibliografía](#bibliografía)
 
+## Instalación
+
+### Ubuntu
+
+* CMake (3.27)
+
+#### Instalar g++13
+
+```
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+sudo apt update
+sudo apt install gcc-13 g++-13 -y
+```
+
+#### Instalar rapidjson
+
+```
+git clone https://github.com/Tencent/rapidjson.git
+cmake .
+sudo make install
+```
+
+#### Instalar spdlog
+
+```
+git clone https://github.com/gabime/spdlog.git
+cmake .
+sudo make install
+```
+
+#### Instalar Crow
+
+```
+git clone https://github.com/CrowCpp/Crow.git
+cmake .
+sudo make install
+```
+
+#### Instalar proyecto
+
+```
+./run.sh g++-13
+cmake --build build
+```
+
 ## Objetivos
 
 ### Principal
