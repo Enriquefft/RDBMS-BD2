@@ -70,13 +70,18 @@ private:
     pos_type first_deleted = -1;
     uint64_t record_count = 0;
 
+    ~TableMetadata() {
+      spdlog::info("TableMetadata destructor");
+      spdlog::info("attribute_names size: {}", attribute_names.size());
+    }
+
     TableMetadata(std::vector<std::string> _attribute_names,
                   std::vector<Type> _attribute_types, std::string _primary_key);
     TableMetadata() = default;
 
     [[nodiscard]] auto
     get_attribute_idx(const std::string &attribute_name) const -> uint8_t;
-    auto size() -> uint64_t {
+    auto record_size() -> uint64_t {
       return std::accumulate(
           attribute_types.begin(), attribute_types.end(),
           static_cast<uint8_t>(0),

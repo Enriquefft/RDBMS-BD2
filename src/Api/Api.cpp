@@ -22,13 +22,23 @@ static auto vec_to_json(const std::vector<T> &vec) -> std::string {
 }
 
 struct ApiResponse {
-  // crow::json::wvalue(crow::json::type::List)
+
   wvalue::list tables;
   wvalue::list columns;
   wvalue::list rows;
   wvalue::object times;
 
+  wvalue errror;
+  wvalue code;
+
   ApiResponse(ParserResponse &&query_response) {
+
+    if (query_response.failed()) {
+      errror = query_response.error;
+      code = query_response.code;
+      return;
+    }
+
     for (auto &table : query_response.table_names) {
       tables.emplace_back(std::move(table));
     }
@@ -79,7 +89,11 @@ auto Api::parse_query(const crow::request &req) -> crow::response {
 
     // response_body = m_sql_parser.parse(query_buffer);
     auto &engine = m_sql_parser.get_engine();
-    ApiResponse api_response(m_sql_parser.parse(query_buffer));
+    ApiResponse api_response(std::move(m_sql_parser.parse(query_buffer)));
+
+    m_sql_parser.clear();
+
+    m_sql_parser.displayResponse();
 
     // Create the response
     crow::response response = api_response.dump();
@@ -89,7 +103,7 @@ auto Api::parse_query(const crow::request &req) -> crow::response {
     return response;
   } catch (std::exception &e) {
     spdlog::error("Error parsing query: {}\n{}", query, e.what());
-    return {crow::status::BAD_REQUEST, e.what()};
+    return {crow::status::INTERNAL_SERVER_ERROR, {}};
   }
 }
 

@@ -258,6 +258,8 @@ void HeapFile::write_metadata() {
 auto HeapFile::TableMetadata::get_attribute_idx(
     const std::string &attribute_name) const -> uint8_t {
 
+  spdlog::info("Getting attribute {} attribute_name");
+
   uint8_t counter = 0;
   for (const auto &attribute : attribute_names) {
     if (attribute == attribute_name) {
