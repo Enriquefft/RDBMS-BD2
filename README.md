@@ -152,6 +152,7 @@ Para probar el funcionamiento del proyecto se realizaron pruebas de inserciones 
 | AVL        | 351774µs| 4531ms| 53645ms| 684193ms|
 | Sequencial | 10829µs |  94ms | 925ms  |  8968ms |
 
+<div style="text-align:center"><img src="./imgs/Figure_1.png" /></div>
 ### Insert
 
 |            | 1k   | 10k  | 100k | 1M   |
@@ -159,6 +160,8 @@ Para probar el funcionamiento del proyecto se realizaron pruebas de inserciones 
 | ISAM       | 34µs | 38µs | 47µs | 64µs |
 | AVL        | 436µs| 475µs| 687µs| 777µs|
 | Sequencial | 140µs| 176µs| 186µs| 248µs|
+
+<div style="text-align:center"><img src="./imgs/Figure_2.png" /></div>
 
 ### Search
 
@@ -168,6 +171,8 @@ Para probar el funcionamiento del proyecto se realizaron pruebas de inserciones 
 | AVL        | 43µs| 49µs | 65µs | 80µs |
 | Sequencial |131µs|156µs | 188µs| 223µs|
 
+<div style="text-align:center"><img src="./imgs/Figure_3.png" /></div>
+
 ### Range Search
 
 |            | 1k    | 10k    | 100k   | 1M      |
@@ -175,6 +180,8 @@ Para probar el funcionamiento del proyecto se realizaron pruebas de inserciones 
 | ISAM       | 228µs | 1203µs | 5402µs | 13213µs |
 | AVL        |16058µs|159193µs| 1721ms | 17882ms |
 | Sequencial |12152µs| 96530µs| 1118ms |  9550ms |
+
+<div style="text-align:center"><img src="./imgs/Figure_4.png" /></div>
 
 ### Remove
 
@@ -184,6 +191,7 @@ Para probar el funcionamiento del proyecto se realizaron pruebas de inserciones 
 | AVL        | 608µs | 831µs| 989µs|1163µs|
 | Sequencial | 161 µs| 255µs| 293µs| 357µs|
 
+<div style="text-align:center"><img src="./imgs/Figure_remove.png" /></div>
 
 
 ## Conclusiones
