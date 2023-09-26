@@ -119,6 +119,7 @@ El parser fue construido usando las herramientas de GNU, bison y flex. Flex usan
 ### Queries
 
 ```CREATE TABLE {tablename} ({col1} {type} primary key, {col2} {type}, ...);```
+
 {type}: int | double | bool | char | char(n)
 
 ```INSERT INTO {tablename} VALUES({value1}, {value2}, ...);```
@@ -126,6 +127,7 @@ El parser fue construido usando las herramientas de GNU, bison y flex. Flex usan
 ```INSERT INTO {tablename} FROM {namefile};```
 
 ```SELECT { * | columnames } FROM tablename [WHERE {constraint1} (AND | OR) {constraint2} ... ];```
+
 {constraint} : {value1} [ = | < | > | <= | >= ] {value2}
 
 ```CREATE INDEX [SEQ | AVL | ISAM] ON {tablename}({colname});```
